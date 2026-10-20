@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		038B4BDAEA1D459AB9CC7D33 /* IBMPlexSansArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5889F36063534D0E8B0D3F4F /* IBMPlexSansArabic-Bold.ttf */; };
+		108EA67F01BB06D31A5B5085 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 484F7EF9F18939AC35AE57DC /* GoogleService-Info.plist */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13F6C6A38FCB418799D058FD /* Lato-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 34E4D36B213A49DDBAB2F9E3 /* Lato-Bold.ttf */; };
 		3A7082D3ACB6FB18F84C6AE2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
@@ -32,6 +33,7 @@
 		34E4D36B213A49DDBAB2F9E3 /* Lato-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Lato-Bold.ttf"; path = "../assets/fonts/Lato-Bold.ttf"; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-FazlSellerCenter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FazlSellerCenter.debug.xcconfig"; path = "Target Support Files/Pods-FazlSellerCenter/Pods-FazlSellerCenter.debug.xcconfig"; sourceTree = "<group>"; };
 		45BC897CB18C1FB577B8F8A2 /* Pods_FazlSellerCenter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_FazlSellerCenter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		484F7EF9F18939AC35AE57DC /* GoogleService-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "FazlSellerCenter/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-FazlSellerCenter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FazlSellerCenter.release.xcconfig"; path = "Target Support Files/Pods-FazlSellerCenter/Pods-FazlSellerCenter.release.xcconfig"; sourceTree = "<group>"; };
 		5889F36063534D0E8B0D3F4F /* IBMPlexSansArabic-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "IBMPlexSansArabic-Bold.ttf"; path = "../assets/fonts/IBMPlexSansArabic-Bold.ttf"; sourceTree = "<group>"; };
 		66004C63412F4AF08E022EAB /* Lato-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Lato-Regular.ttf"; path = "../assets/fonts/Lato-Regular.ttf"; sourceTree = "<group>"; };
@@ -63,6 +65,7 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				484F7EF9F18939AC35AE57DC /* GoogleService-Info.plist */,
 			);
 			name = FazlSellerCenter;
 			sourceTree = "<group>";
@@ -203,6 +206,7 @@
 				ED5F64A2DB16453FA2562484 /* Lato-Regular.ttf in Resources */,
 				EDCE99E92E374DF5B6C8EEFF /* OFL.txt in Resources */,
 				3A7082D3ACB6FB18F84C6AE2 /* PrivacyInfo.xcprivacy in Resources */,
+				108EA67F01BB06D31A5B5085 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -315,7 +319,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = FazlSellerCenter/FazlSellerCenter.entitlements;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = FazlSellerCenter/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -346,7 +350,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = FazlSellerCenter/FazlSellerCenter.entitlements;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				INFOPLIST_FILE = FazlSellerCenter/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
