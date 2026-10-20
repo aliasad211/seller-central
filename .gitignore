@@ -78,3 +78,8 @@ yarn-error.log
 .env
 .env*.local
 !.env.example
+
+# Local build logs
+android/build-release.log
+ios/build-archive.log
+ios/build/

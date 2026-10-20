@@ -24,6 +24,8 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -33,8 +35,28 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Seller Central uses the camera so you can take photos and videos for your shop and posts.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Seller Central uses your location to place your shop on the map.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Seller Central uses your location to place your shop on the map.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Seller Central uses the microphone to record sound with videos for your posts.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Seller Central needs access to your photos and videos so you can add them to your shop, profile and posts.</string>
+	<key>RCTNewArchEnabled</key>
+	<true/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>IBMPlexSansArabic-Bold.ttf</string>
+		<string>IBMPlexSansArabic-Medium.ttf</string>
+		<string>IBMPlexSansArabic-Regular.ttf</string>
+		<string>Lato-Black.ttf</string>
+		<string>Lato-Bold.ttf</string>
+		<string>Lato-Light.ttf</string>
+		<string>Lato-Regular.ttf</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
@@ -54,15 +76,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>UIAppFonts</key>
-	<array>
-		<string>IBMPlexSansArabic-Bold.ttf</string>
-		<string>IBMPlexSansArabic-Medium.ttf</string>
-		<string>IBMPlexSansArabic-Regular.ttf</string>
-		<string>Lato-Black.ttf</string>
-		<string>Lato-Bold.ttf</string>
-		<string>Lato-Light.ttf</string>
-		<string>Lato-Regular.ttf</string>
-	</array>
 </dict>
 </plist>
