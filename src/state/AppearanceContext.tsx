@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { ColorScheme, setColorScheme } from '../theme';
+import { syncWindowBackground } from '../utils/windowBackground';
 
 /** Settings > Appearance: follow the phone (the default), or always light / dark. */
 export type AppearanceMode = 'system' | 'light' | 'dark';
@@ -34,6 +35,10 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   const scheme: ColorScheme = mode === 'system' ? (phone === 'dark' ? 'dark' : 'light') : mode;
   // Before anything below is drawn, so it all reads this scheme's colours.
   setColorScheme(scheme);
+  // The window behind the app takes the new scheme's background too.
+  useEffect(() => {
+    syncWindowBackground();
+  }, [scheme]);
 
   const value = useMemo<AppearanceState>(
     () => ({

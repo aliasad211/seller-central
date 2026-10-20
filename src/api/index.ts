@@ -259,9 +259,13 @@ export function updateOrderStatus(
 }
 
 /** A ready delivery order leaves the shop with the seller delivering it
- *  themselves: "Out for delivery" on Fazl, and the customer is told. */
-export function startSelfDelivery(shopId: string, id: string): Promise<Order> {
-  return setShopOrderStatus(shopId, id, 'out_for_delivery', { deliveryMethod: 'self' });
+ *  themselves — or one of their team's riders, `riderId`: "Out for
+ *  delivery" on Fazl, and the customer is told. */
+export function startSelfDelivery(shopId: string, id: string, riderId?: string): Promise<Order> {
+  return setShopOrderStatus(shopId, id, 'out_for_delivery', {
+    deliveryMethod: 'self',
+    ...(riderId ? { deliveryMemberId: riderId } : {}),
+  });
 }
 
 // Fazl riders aren't on Fazl yet: these still work on the sample orders only,

@@ -13,6 +13,7 @@ const UPLOAD_TIMEOUT_MS = 5 * 60_000;
 export interface Tokens {
   accessToken: string;
   refreshToken?: string;
+  isMember?: boolean;
 }
 
 export class ApiError extends Error {
@@ -61,6 +62,8 @@ interface RequestOptions {
   form?: FormData;
   /** False for login calls, which have no token yet. */
   auth?: boolean;
+  /** For a call the backend answers slowly (a JazzCash payment waits for the buyer). */
+  timeoutMs?: number;
 }
 
 /** Calls the backend and returns the response's `data`. */
@@ -78,18 +81,20 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   return parse<T>(res);
 }
 
-async function send(path: string, { method = 'GET', body, form }: RequestOptions, auth: boolean) {
+async function send(path: string, { method = 'GET', body, form, timeoutMs }: RequestOptions, auth: boolean) {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     // The backend answers its messages (and category names) in the app's language.
     'Accept-Language': language,
+    // Tells Fazl the request is Seller Central's: what it lists is retail.
+    'X-Fazl-Client': 'seller-central',
   };
   // Multipart sets its own Content-Type (with the boundary).
   if (body !== undefined && !form) headers['Content-Type'] = 'application/json';
   if (auth && tokens?.accessToken) headers.Authorization = `Bearer ${tokens.accessToken}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), form ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs ?? (form ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS));
   try {
     return await fetch(`${API_BASE_URL}${path}`, {
       method,
@@ -126,7 +131,10 @@ function refreshOnce(): Promise<boolean> {
   if (!refreshing) {
     refreshing = (async () => {
       try {
-        const res = await send('/auth/refreshToken', {
+        const refreshPath = tokens?.isMember
+          ? '/seller/members/session/refresh'
+          : '/auth/refreshToken';
+        const res = await send(refreshPath, {
           method: 'POST',
           body: { token: tokens?.refreshToken },
         }, false);
@@ -135,6 +143,7 @@ function refreshOnce(): Promise<boolean> {
         await saveTokens({
           accessToken: data.accessToken,
           refreshToken: data.refreshToken ?? tokens?.refreshToken,
+          isMember: tokens?.isMember,
         });
         return true;
       } catch {

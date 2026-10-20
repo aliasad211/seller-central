@@ -6,6 +6,7 @@ import { AppText } from '../../components';
 import { useAuth } from '../../state/AuthContext';
 import { colors, radius, spacing, themedStyles } from '../../theme';
 import { t } from '../../i18n';
+import { followThemeWithWindow } from '../../utils/windowBackground';
 
 // Same rhythm as the Fazl app's splash dots.
 const DOT_COUNT = 3;
@@ -72,6 +73,9 @@ export function SplashScreen({
 
   useEffect(() => {
     Animated.timing(rise, { toValue: 0, duration: 500, useNativeDriver: true }).start();
+    // The splash covers the screen now, so the window behind the app can
+    // leave launch's teal for the theme's background.
+    followThemeWithWindow();
     const timer = setTimeout(() => setShownLongEnough(true), minShowMs);
     return () => clearTimeout(timer);
   }, [rise, minShowMs]);

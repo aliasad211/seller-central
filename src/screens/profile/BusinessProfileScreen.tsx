@@ -37,6 +37,10 @@ export function BusinessProfileScreen({ navigation }: RootScreenProps<'BusinessP
   const [pickingCategory, setPickingCategory] = useState(false);
   const [missing, setMissing] = useState<Field[]>([]);
   const [saving, setSaving] = useState(false);
+  // Delivery charge: what the owner charges customers for door-to-door delivery.
+  const [deliveryCharge, setDeliveryCharge] = useState<string>(
+    String(seller?.shop?.deliveryCharge ?? 0),
+  );
 
   useEffect(() => {
     shopTypeCategories().then(setCategories).catch(() => setCategories([]));
@@ -86,6 +90,7 @@ export function BusinessProfileScreen({ navigation }: RootScreenProps<'BusinessP
         categoryId: category?.id,
         logo: logo ?? undefined,
         banner: banner ?? undefined,
+        deliveryCharge: Math.round(Number(deliveryCharge) || 0),
       });
       // The shop as Fazl now has it (new photo links, category name), so the
       // headers and this screen show the saved profile.
@@ -162,6 +167,13 @@ export function BusinessProfileScreen({ navigation }: RootScreenProps<'BusinessP
         value={shop.openingHours}
         onChangeText={set('openingHours')}
         placeholder={t('e.g. 10:00 AM – 10:00 PM')}
+      />
+      <TextField
+        label={t('Delivery charges (PKR)')}
+        value={deliveryCharge}
+        onChangeText={v => setDeliveryCharge(v.replace(/[^0-9]/g, ''))}
+        keyboardType="numeric"
+        placeholder={t('0 for free delivery')}
       />
 
       <View style={styles.note}>

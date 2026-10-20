@@ -1,12 +1,7 @@
 import { Bike, Info, MapPin, Pencil, Phone, Store, Truck, User } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
-import {
-  getOrder,
-  startSelfDelivery,
-  updateOrderStatus,
-  updateTracking,
-} from '../../api';
+import { getOrder, updateOrderStatus, updateTracking } from '../../api';
 import {
   AppText,
   Badge,
@@ -95,10 +90,8 @@ export function OrderDetailScreen({ route, navigation }: RootScreenProps<'OrderD
         }
         break;
       case 'selfDelivery':
-        Alert.alert(t('Deliver it yourself?'), t('The order will show as "Out for delivery" to the customer.'), [
-          { text: t('Cancel'), style: 'cancel' },
-          { text: t("I'm delivering"), onPress: () => run('self', () => startSelfDelivery(shopId, order.id)) },
-        ]);
+        // Who takes it: the seller, or one of the team's riders.
+        navigation.navigate('SelfDelivery', { orderId: order.id });
         break;
       case 'assignRider':
         navigation.navigate('AssignRider', { orderId: order.id });
@@ -153,7 +146,7 @@ export function OrderDetailScreen({ route, navigation }: RootScreenProps<'OrderD
                     title={a.label}
                     variant={variant}
                     flex
-                    loading={busy !== null && busy === ('next' in a ? a.next : a.kind === 'selfDelivery' ? 'self' : '')}
+                    loading={busy !== null && busy === ('next' in a ? a.next : '')}
                     disabled={busy !== null}
                     onPress={() => onAction(a)}
                   />
@@ -215,6 +208,8 @@ export function OrderDetailScreen({ route, navigation }: RootScreenProps<'OrderD
                   ? t('The customer collects it from your shop.')
                   : !local
                   ? `${order.delivery.courier ?? ''} · ${order.delivery.trackingId ?? ''}`
+                  : order.delivery.method === 'self' && order.delivery.riderName
+                  ? t('Your team rider is delivering this order')
                   : order.delivery.method === 'self'
                   ? t('You are delivering this order')
                   : t("Send it to the customer's address below.")}
@@ -231,6 +226,31 @@ export function OrderDetailScreen({ route, navigation }: RootScreenProps<'OrderD
               </Pressable>
             ) : null}
           </View>
+          {local && order.delivery.method === 'self' && order.delivery.riderName ? (
+            <>
+              <Divider />
+              <View style={styles.riderRow}>
+                <IconCircle icon={Bike} tone="primary" size={36} />
+                <View style={styles.flex}>
+                  <AppText variant="bodyBold">{order.delivery.riderName}</AppText>
+                  {order.delivery.riderPhone ? (
+                    <AppText variant="caption" color={colors.textMuted}>
+                      {order.delivery.riderPhone}
+                    </AppText>
+                  ) : null}
+                </View>
+                {order.delivery.riderPhone ? (
+                  <Button
+                    title={t('Call')}
+                    icon={Phone}
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => Linking.openURL(`tel:${order.delivery.riderPhone?.replace(/\s/g, '')}`)}
+                  />
+                ) : null}
+              </View>
+            </>
+          ) : null}
           {!local && order.delivery.trackingStatus ? (
             <>
               <Divider />
@@ -432,6 +452,8 @@ const styles = themedStyles(() => StyleSheet.create({
     borderTopColor: colors.border,
   },
   personRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
+  // The team rider taking it: the last thing in the delivery card.
+  riderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   address: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   note: {
     marginTop: spacing.md,

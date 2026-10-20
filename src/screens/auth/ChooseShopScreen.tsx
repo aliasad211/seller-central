@@ -1,8 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LogOut, MapPin, Plus, Store } from 'lucide-react-native';
+import { Hourglass, LogOut, MapPin, Plus, Store } from 'lucide-react-native';
 import { ChevronForward } from '../../components/Chevrons';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,8 +14,11 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import ButtonBackground from '../../assets/images/button-background.png';
+import { cancelShopRequest, listShopRequests, ShopRequest } from '../../api/shopRequests';
 import { AppText, Badge, Button, Header, IconCircle, Screen } from '../../components';
+import { formatRs, timeAgo } from '../../utils/format';
 import { RootStackParamList } from '../../navigation/types';
 import { useAuth } from '../../state/AuthContext';
 import { colors, radius, shadow, spacing, themedStyles } from '../../theme';
@@ -23,8 +26,10 @@ import { confirmLogout } from '../../utils/confirmLogout';
 import { Shop } from '../../types/models';
 import { t } from '../../i18n';
 
-/** The backend's limit (ShopService.MAX_SHOPS_PER_OWNER). */
+/** The backend's limit (MAX_SHOPS_PER_OWNER), counting shops waiting for approval. */
 const MAX_SHOPS = 3;
+/** A turned-down request stays listed this long, so its reason can be read. */
+const REJECTED_SHOWN_MS = 14 * 24 * 60 * 60 * 1000;
 
 /** Right after login, when the account has several shops and none is chosen. */
 export function SelectShopScreen() {
@@ -41,16 +46,61 @@ function ShopPicker({ switching }: { switching: boolean }) {
   const { seller, selectShop, reloadShops, signOut } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [choosing, setChoosing] = useState<string | null>(null);
+  // The owner's requests for further shops: waiting ones, and recent refusals.
+  const [requests, setRequests] = useState<ShopRequest[]>([]);
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const isOwner = !seller?.member;
+
+  const loadRequests = useCallback(() => {
+    if (!isOwner) return Promise.resolve();
+    return listShopRequests()
+      .then(setRequests)
+      .catch(() => undefined);
+  }, [isOwner]);
+
+  // Again on coming back from Create shop.
+  useFocusEffect(
+    useCallback(() => {
+      loadRequests();
+    }, [loadRequests]),
+  );
 
   const refresh = async () => {
     setRefreshing(true);
     try {
-      await reloadShops();
+      await Promise.all([reloadShops(), loadRequests()]);
     } catch {
       // Keep the list already shown; pulling again retries.
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const cancelRequest = (r: ShopRequest) => {
+    Alert.alert(
+      t('Cancel this request?'),
+      r.fee > 0
+        ? t('{name} is removed and {amount} goes back to your Fazl wallet.', { name: r.shopTitle, amount: formatRs(r.fee) })
+        : t('{name} is removed.', { name: r.shopTitle }),
+      [
+        { text: t('Keep it'), style: 'cancel' },
+        {
+          text: t('Cancel request'),
+          style: 'destructive',
+          onPress: async () => {
+            setCancelling(r.id);
+            try {
+              await cancelShopRequest(r.id);
+              await loadRequests();
+            } catch (e) {
+              Alert.alert(t('Could not cancel'), e instanceof Error ? e.message : '');
+            } finally {
+              setCancelling(null);
+            }
+          },
+        },
+      ],
+    );
   };
 
   // Switching: show the account's shops as they are now on Fazl.
@@ -76,11 +126,16 @@ function ShopPicker({ switching }: { switching: boolean }) {
     }
   };
 
-  // Suspended shops aren't in the list (see api/session.ts).
+  // Suspended shops, and ones waiting for approval, aren't in the list (see api/session.ts).
   const shops = seller?.shops ?? [];
   const firstName = (seller?.name ?? '').split(' ')[0];
-  // Fazl allows an account 3 shops that aren't suspended.
-  const canCreate = shops.length < MAX_SHOPS;
+  const waiting = requests.filter(r => r.status === 'pending');
+  const refused = requests.filter(
+    r => r.status === 'rejected' && Date.now() - new Date(r.reviewedAt ?? r.createdAt).getTime() < REJECTED_SHOWN_MS,
+  );
+  // Fazl allows an account 3 shops that aren't suspended, counting ones
+  // waiting for approval. Team members cannot create shops.
+  const canCreate = isOwner && shops.length + waiting.length < MAX_SHOPS;
 
   return (
     <Screen
@@ -128,6 +183,14 @@ function ShopPicker({ switching }: { switching: boolean }) {
         )}
         ListFooterComponent={
           <View style={styles.footer}>
+            {[...waiting, ...refused].map(r => (
+              <RequestCard
+                key={r.id}
+                request={r}
+                cancelling={cancelling === r.id}
+                onCancel={r.status === 'pending' ? () => cancelRequest(r) : undefined}
+              />
+            ))}
             {canCreate ? (
               <Button
                 title={t('Create a new shop')}
@@ -224,8 +287,56 @@ function ShopCard({
   );
 }
 
+/** A further shop the owner asked for: waiting for Fazl, or turned down. */
+function RequestCard({
+  request,
+  cancelling,
+  onCancel,
+}: {
+  request: ShopRequest;
+  cancelling: boolean;
+  onCancel?: () => void;
+}) {
+  const pending = request.status === 'pending';
+  return (
+    <View style={[styles.card, styles.request]}>
+      <IconCircle icon={Hourglass} size={60} />
+      <View style={styles.body}>
+        <AppText variant="subheading" numberOfLines={1}>
+          {request.shopTitle}
+        </AppText>
+        <View style={styles.badges}>
+          <Badge label={pending ? t('Waiting for approval') : t('Not approved')} tone={pending ? 'warning' : 'danger'} />
+        </View>
+        <AppText variant="caption" color={colors.textMuted}>
+          {pending
+            ? request.fee > 0
+              ? t('Sent {time} · {amount} paid', { time: timeAgo(request.createdAt), amount: formatRs(request.fee) })
+              : t('Sent {time}', { time: timeAgo(request.createdAt) })
+            : [request.rejectionReason, request.fee > 0 ? t('{amount} is back in your wallet', { amount: formatRs(request.fee) }) : '']
+                .filter(Boolean)
+                .join(' · ')}
+        </AppText>
+        {onCancel ? (
+          <Pressable onPress={onCancel} disabled={cancelling} hitSlop={8} style={styles.cancel}>
+            {cancelling ? (
+              <ActivityIndicator color={colors.danger} size="small" />
+            ) : (
+              <AppText variant="label" color={colors.danger}>
+                {t('Cancel request')}
+              </AppText>
+            )}
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
 const styles = themedStyles(() => StyleSheet.create({
   list: { padding: spacing.lg, gap: spacing.md },
+  request: { alignSelf: 'stretch', alignItems: 'flex-start' },
+  cancel: { alignSelf: 'flex-start', marginTop: spacing.xs },
   hero: {
     backgroundColor: colors.primary,
     borderRadius: radius.lg,

@@ -588,10 +588,10 @@ const ur: Record<string, string> = {
   'Change banner': 'بینر تبدیل کریں',
   Retail: 'ریٹیل',
   'Enter a price: customers pay it when they buy on Fazl.': 'قیمت درج کریں: گاہک فضل پر خریدتے وقت یہی ادا کرتے ہیں۔',
-  'Customers buy it on Fazl with Buy now or Add to cart, and the order comes to you here.':
-    'گاہک اسے فضل پر "ابھی خریدیں" یا "کارٹ میں شامل کریں" سے خریدتے ہیں، اور آرڈر یہاں آپ کے پاس آتا ہے۔',
-  "Customers contact you about it (chat, offer, WhatsApp); it can't be ordered on Fazl.":
-    'گاہک اس کے بارے میں آپ سے رابطہ کرتے ہیں (چیٹ، آفر، واٹس ایپ)؛ اسے فضل پر آرڈر نہیں کیا جا سکتا۔',
+  'Customers buy it on Fazl with Buy now or Add to cart, and the order comes to you here. Classified listings are posted from the Fazl app.':
+    'گاہک اسے فضل پر "ابھی خریدیں" یا "کارٹ میں شامل کریں" سے خریدتے ہیں، اور آرڈر یہاں آپ کے پاس آتا ہے۔ کلاسیفائیڈ لسٹنگ فضل ایپ سے پوسٹ ہوتی ہے۔',
+  "Posted from the Fazl app: customers contact you about it (chat, offer, WhatsApp); it can't be ordered on Fazl.":
+    'فضل ایپ سے پوسٹ کی گئی: گاہک اس کے بارے میں آپ سے رابطہ کرتے ہیں (چیٹ، آفر، واٹس ایپ)؛ اسے فضل پر آرڈر نہیں کیا جا سکتا۔',
   'e.g. 2500': 'مثلاً 2500',
   'What customers pay when they order it.': 'آرڈر کرتے وقت گاہک یہی قیمت ادا کرتے ہیں۔',
   'Change logo': 'لوگو تبدیل کریں',
@@ -743,6 +743,254 @@ const ur: Record<string, string> = {
   "This video couldn't be played.": 'یہ ویڈیو نہیں چل سکی۔',
   'Try Again': 'دوبارہ کوشش کریں',
   'Back to options': 'اختیارات پر واپس',
+
+  // Team members: logging in, and joining with an invite code.
+  'Shop Owner': 'دکان کا مالک',
+  'Team Member': 'ٹیم ممبر',
+  'Team Member Login': 'ٹیم ممبر لاگ ان',
+  'Log in as Team Member': 'ٹیم ممبر کے طور پر لاگ ان کریں',
+  'Ask your shop owner to update or reset your team credentials.':
+    'اپنا پاس ورڈ بدلوانے کے لیے دکان کے مالک سے کہیں۔',
+  'Sign in with your team credentials to manage assigned shop orders, products, and ads.':
+    'اپنی ٹیم والی ای میل اور پاس ورڈ سے لاگ ان کریں اور دکان کے آرڈرز، پروڈکٹس اور اشتہارات سنبھالیں۔',
+  'Team members only have access to Seller Central and the specific permissions granted by the shop owner.':
+    'ٹیم ممبرز صرف سیلر سینٹرل استعمال کر سکتے ہیں، اور صرف وہی کام جن کی دکان کے مالک نے اجازت دی ہو۔',
+  'Business profile': 'کاروباری پروفائل',
+  'Only the shop owner can edit the business profile.': 'کاروباری پروفائل صرف دکان کا مالک بدل سکتا ہے۔',
+  'Delivery charges (PKR)': 'ڈیلیوری چارجز (روپے)',
+  '0 for free delivery': 'مفت ڈیلیوری کے لیے 0',
+  'Join your team': 'اپنی ٹیم میں شامل ہوں',
+  'Enter your email, the 6-digit code from your invite email, and choose a password.':
+    'اپنی ای میل، دعوت والی ای میل میں آیا 6 ہندسوں کا کوڈ درج کریں اور ایک پاس ورڈ بنائیں۔',
+  'Invite code': 'دعوتی کوڈ',
+  'Choose a password': 'پاس ورڈ بنائیں',
+  'Confirm password': 'پاس ورڈ دوبارہ لکھیں',
+  'Enter the 6-digit code from the invite email': 'دعوت والی ای میل میں آیا 6 ہندسوں کا کوڈ درج کریں',
+  'Use at least 6 characters': 'کم از کم 6 حروف استعمال کریں',
+  "Passwords don't match": 'دونوں پاس ورڈ ایک جیسے نہیں',
+  'Join team': 'ٹیم میں شامل ہوں',
+  Joining: 'شامل ہو رہے ہیں',
+  'Already joined? Log in': 'پہلے سے شامل ہیں؟ لاگ ان کریں',
+  'Got an invite code? Join your team': 'دعوتی کوڈ ملا ہے؟ اپنی ٹیم میں شامل ہوں',
+
+  // The owner's team (More > Team).
+  Team: 'ٹیم',
+  'People who help run your shops': 'وہ لوگ جو آپ کی دکانیں چلانے میں مدد کرتے ہیں',
+  'Invite someone': 'کسی کو دعوت دیں',
+  'Posts & ads': 'پوسٹس اور اشتہارات',
+  'Invite sent': 'دعوت بھیج دی گئی',
+  'Invite expired': 'دعوت کی مدت ختم',
+  'Team members log in on the Team Member tab with their own email. They work on all your shops, only with what you allow. Earnings, the business profile and the team stay with you.':
+    'ٹیم ممبرز لاگ ان اسکرین پر "ٹیم ممبر" سے اپنی ای میل کے ساتھ لاگ ان کرتے ہیں۔ وہ آپ کی تمام دکانوں پر صرف وہی کام کرتے ہیں جن کی آپ اجازت دیں۔ کمائی، کاروباری پروفائل اور ٹیم صرف آپ کے پاس رہتے ہیں۔',
+  'No one on your team yet': 'ابھی آپ کی ٹیم میں کوئی نہیں',
+  'Invite people to help with orders, products or ads. We email them a code to join.':
+    'آرڈرز، پروڈکٹس یا اشتہارات میں مدد کے لیے لوگوں کو دعوت دیں۔ ہم انہیں شامل ہونے کا کوڈ ای میل کر دیتے ہیں۔',
+  'Orders, returns and delivery': 'آرڈرز، واپسیاں اور ڈیلیوری',
+  'Products, inventory and pricing': 'پروڈکٹس، اسٹاک اور قیمتیں',
+  'Videos and advertisement campaigns': 'ویڈیوز اور اشتہاری مہمات',
+  'We emailed {name} a code to join: {code}. It works for 7 days. You can also send it to them yourself.':
+    'ہم نے {name} کو شامل ہونے کا کوڈ ای میل کر دیا ہے: {code}۔ یہ 7 دن کام کرے گا۔ آپ یہ کوڈ خود بھی انہیں بھیج سکتے ہیں۔',
+  'Share code': 'کوڈ شیئر کریں',
+  'You are invited to my team on Fazl Seller Central. Your invite code is {code}. Open Seller Central, choose Team Member, tap "Got an invite code? Join your team" and use the email {email}.':
+    'آپ کو فضل سیلر سینٹرل پر میری ٹیم میں شامل ہونے کی دعوت ہے۔ آپ کا دعوتی کوڈ {code} ہے۔ سیلر سینٹرل کھولیں، "ٹیم ممبر" چنیں، "دعوتی کوڈ ملا ہے؟ اپنی ٹیم میں شامل ہوں" پر ٹیپ کریں اور یہ ای میل استعمال کریں: {email}',
+  'Choose at least one': 'کم از کم ایک چنیں',
+  'New invite sent': 'نئی دعوت بھیج دی گئی',
+  'Could not send': 'بھیجا نہیں جا سکا',
+  'Remove {name}?': '{name} کو ہٹا دیں؟',
+  "They won't be able to log in to Seller Central any more.": 'وہ اب سیلر سینٹرل میں لاگ ان نہیں کر سکیں گے۔',
+  'Could not remove': 'ہٹایا نہیں جا سکا',
+  'Team member': 'ٹیم ممبر',
+  'Invite to team': 'ٹیم میں دعوت دیں',
+  'Send invite': 'دعوت بھیجیں',
+  Sending: 'بھیجا جا رہا ہے',
+  Email: 'ای میل',
+  'e.g. Ali Khan': 'مثلاً علی خان',
+  'We email them a 6-digit code to join with.': 'ہم انہیں شامل ہونے کے لیے 6 ہندسوں کا کوڈ ای میل کریں گے۔',
+  'What they can do': 'وہ کیا کر سکتے ہیں',
+  'Pause access': 'رسائی روکیں',
+  "While paused they can't log in. Turn it off to let them back in.":
+    'رسائی رکی ہو تو وہ لاگ ان نہیں کر سکتے۔ دوبارہ اجازت دینے کے لیے اسے بند کریں۔',
+  'Send invite again': 'دعوت دوبارہ بھیجیں',
+  'Remove from team': 'ٹیم سے ہٹائیں',
+  Removing: 'ہٹایا جا رہا ہے',
+  // Team roles: managers and riders; picking the rider for a self delivery.
+  Manager: 'مینیجر',
+  Rider: 'رائیڈر',
+  Role: 'کردار',
+  'Phone number': 'فون نمبر',
+  'Enter a valid phone number': 'درست فون نمبر درج کریں',
+  'You and your managers call the rider on this number about a delivery.':
+    'ڈیلیوری کے بارے میں آپ اور آپ کے مینیجر اس نمبر پر رائیڈر کو کال کریں گے۔',
+  'Riders deliver the orders you deliver yourself. When an order goes out, you or a manager pick the rider. A rider can log in to see and update orders only.':
+    'رائیڈر وہ آرڈرز ڈیلیور کرتے ہیں جو آپ خود ڈیلیور کرتے ہیں۔ آرڈر روانہ کرتے وقت آپ یا کوئی مینیجر رائیڈر چنتا ہے۔ رائیڈر لاگ ان کر کے صرف آرڈرز دیکھ اور اپ ڈیٹ کر سکتا ہے۔',
+  'Who is delivering?': 'کون ڈیلیور کر رہا ہے؟',
+  "I'm delivering it myself": 'میں خود ڈیلیور کر رہا ہوں',
+  'The order shows as "Out for delivery" to the customer.': 'گاہک کو آرڈر "ڈیلیوری کے لیے روانہ" دکھائی دے گا۔',
+  'Your riders': 'آپ کے رائیڈرز',
+  'No riders on your team yet. Add one in More > Team, as a Rider.':
+    'ابھی آپ کی ٹیم میں کوئی رائیڈر نہیں۔ مزید > ٹیم میں جا کر "رائیڈر" کے طور پر شامل کریں۔',
+  'No riders on the team yet. The shop owner adds them.': 'ابھی ٹیم میں کوئی رائیڈر نہیں۔ دکان کا مالک انہیں شامل کرتا ہے۔',
+  'Add a rider': 'رائیڈر شامل کریں',
+  'Your team rider is delivering this order': 'آپ کی ٹیم کا رائیڈر یہ آرڈر ڈیلیور کر رہا ہے',
+  '{name} is delivering': '{name} ڈیلیور کر رہا ہے',
+
+  'They log in to Seller Central only, on all your shops. Earnings, the business profile and the team stay with you.':
+    'وہ صرف سیلر سینٹرل میں، آپ کی تمام دکانوں پر لاگ ان کرتے ہیں۔ کمائی، کاروباری پروفائل اور ٹیم صرف آپ کے پاس رہتے ہیں۔',
+
+  // Earnings > Withdraw: the wallet balance, payout accounts and requests.
+  'Withdraw earnings': 'کمائی نکالیں',
+  Withdraw: 'رقم نکالیں',
+  'Available to withdraw': 'نکالنے کے لیے دستیاب',
+  'Available to withdraw: {amount}': 'نکالنے کے لیے دستیاب: {amount}',
+  '{amount} already requested': '{amount} کی درخواست پہلے ہی دی جا چکی ہے',
+  'Withdrawn so far: {amount}': 'اب تک نکالی گئی رقم: {amount}',
+  'Fazl has paused your wallet. Contact Fazl support for help.':
+    'فضل نے آپ کا والٹ روک دیا ہے۔ مدد کے لیے فضل سپورٹ سے رابطہ کریں۔',
+  'Withdrawals are paused for now. Please try again later.':
+    'رقم نکالنا ابھی بند ہے۔ براہ کرم بعد میں کوشش کریں۔',
+  'You can withdraw once you have at least {amount}.':
+    'کم از کم {amount} ہونے پر آپ رقم نکال سکتے ہیں۔',
+  'Add an account first': 'پہلے اکاؤنٹ شامل کریں',
+  'Add the bank, JazzCash or Easypaisa account to send the money to.':
+    'وہ بینک، جاز کیش یا ایزی پیسہ اکاؤنٹ شامل کریں جس میں رقم بھیجی جائے۔',
+  'Add account': 'اکاؤنٹ شامل کریں',
+  'Your accounts': 'آپ کے اکاؤنٹس',
+  'No accounts yet': 'ابھی کوئی اکاؤنٹ نہیں',
+  'Add the bank, JazzCash or Easypaisa account your money is sent to.':
+    'وہ بینک، جاز کیش یا ایزی پیسہ اکاؤنٹ شامل کریں جس میں آپ کی رقم بھیجی جائے۔',
+  'Bank account': 'بینک اکاؤنٹ',
+  Default: 'ڈیفالٹ',
+  'Make default': 'ڈیفالٹ بنائیں',
+  Withdrawals: 'نکالی گئی رقوم',
+  'Your requests show up here.': 'آپ کی درخواستیں یہاں نظر آئیں گی۔',
+  Requested: 'درخواست دی گئی',
+  Approved: 'منظور',
+  'Being sent': 'بھیجی جا رہی ہے',
+  Paid: 'ادا ہو گئی',
+  Rejected: 'مسترد',
+  'Cancel this request?': 'یہ درخواست منسوخ کریں؟',
+  'The amount stays in your wallet.': 'رقم آپ کے والٹ میں رہے گی۔',
+  'Keep it': 'رہنے دیں',
+  'Cancel request': 'درخواست منسوخ کریں',
+  'Could not cancel': 'منسوخ نہیں ہو سکی',
+  "Fazl's team checks each request and sends the money to the account you chose. Cash on delivery money is already with you, so it isn't part of this balance.":
+    'فضل کی ٹیم ہر درخواست دیکھتی ہے اور رقم آپ کے چنے ہوئے اکاؤنٹ میں بھیجتی ہے۔ کیش آن ڈیلیوری کی رقم پہلے ہی آپ کے پاس ہوتی ہے، اس لیے وہ اس بیلنس میں شامل نہیں۔',
+  'The smallest withdrawal is {amount}.': 'کم از کم {amount} نکالے جا سکتے ہیں۔',
+  'You can withdraw up to {amount}.': 'آپ زیادہ سے زیادہ {amount} نکال سکتے ہیں۔',
+  'Withdrawal requested': 'درخواست بھیج دی گئی',
+  "Fazl's team will send {amount} to your account. You can follow it under Withdrawals.":
+    'فضل کی ٹیم {amount} آپ کے اکاؤنٹ میں بھیجے گی۔ آپ اسے "نکالی گئی رقوم" میں دیکھ سکتے ہیں۔',
+  OK: 'ٹھیک ہے',
+  'Could not request': 'درخواست نہیں بھیجی جا سکی',
+  'Request withdrawal': 'رقم نکالنے کی درخواست دیں',
+  Amount: 'رقم',
+  'Withdraw all ({amount})': 'سب نکالیں ({amount})',
+  'Send to': 'کہاں بھیجیں',
+  'Save account': 'اکاؤنٹ محفوظ کریں',
+  Bank: 'بینک',
+  'Account title': 'اکاؤنٹ کا نام',
+  'The name the account is in': 'جس نام پر اکاؤنٹ ہے',
+  'Bank name': 'بینک کا نام',
+  'e.g. Meezan Bank': 'مثلاً میزان بینک',
+  'Account number': 'اکاؤنٹ نمبر',
+  'Enter the account number': 'اکاؤنٹ نمبر درج کریں',
+  'IBAN (optional)': 'IBAN (اختیاری)',
+  '{name} mobile number': '{name} موبائل نمبر',
+  'Enter the 11-digit mobile number, e.g. 03001234567': '11 ہندسوں کا موبائل نمبر درج کریں، مثلاً 03001234567',
+  'Make this my default': 'اسے ڈیفالٹ بنائیں',
+  'Offered first when you withdraw': 'رقم نکالتے وقت یہی پہلے چنا ہوگا',
+  'Check the details: Fazl sends your money to exactly this account. The account should be in your own name.':
+    'تفصیلات چیک کر لیں: فضل آپ کی رقم بالکل اسی اکاؤنٹ میں بھیجے گا۔ اکاؤنٹ آپ کے اپنے نام پر ہونا چاہیے۔',
+
+  // Another shop: its fee, Fazl's approval, and adding coins to pay for it.
+  'Shop limit reached': 'دکانوں کی حد پوری ہو گئی',
+  'You can have up to {count} shops on Fazl, counting ones waiting for approval.':
+    'فضل پر آپ کی زیادہ سے زیادہ {count} دکانیں ہو سکتی ہیں، منظوری کی منتظر دکانوں سمیت۔',
+  'Not enough money': 'والٹ میں رقم کم ہے',
+  'Another shop costs {fee}, and your Fazl wallet has {balance}. Add money first.': 'ایک اور دکان کی فیس {fee} ہے، اور آپ کے فضل والٹ میں {balance} ہیں۔ پہلے رقم شامل کریں۔',
+  'Pay {amount}?': '{amount} ادا کریں؟',
+  "It's taken from your Fazl wallet now. If Fazl doesn't approve the shop, it goes back to your wallet.":
+    'یہ رقم ابھی آپ کے فضل والٹ سے کٹے گی۔ اگر فضل نے دکان منظور نہ کی تو یہ آپ کے والٹ میں واپس آ جائے گی۔',
+  'Pay & send': 'ادا کریں اور بھیجیں',
+  'Sent for approval': 'منظوری کے لیے بھیج دی گئی',
+  "Fazl will check {name} and let you know. Once it's approved it opens on Fazl and shows in your shops.":
+    'فضل {name} کو دیکھ کر آپ کو بتائے گا۔ منظوری کے بعد یہ فضل پر کھل جائے گی اور آپ کی دکانوں میں نظر آئے گی۔',
+  'Pay {amount} & send for approval': '{amount} ادا کریں اور منظوری کے لیے بھیجیں',
+  'Send for approval': 'منظوری کے لیے بھیجیں',
+  "Another shop needs Fazl's approval": 'ایک اور دکان کے لیے فضل کی منظوری ضروری ہے',
+  "Your first shop is free. This one costs {fee}, paid from your Fazl wallet; if Fazl doesn't approve it, the money comes back.":
+    'آپ کی پہلی دکان مفت ہے۔ اس کی فیس {fee} ہے جو آپ کے فضل والٹ سے ادا ہو گی؛ اگر فضل نے اسے منظور نہ کیا تو رقم واپس آ جائے گی۔',
+  'Your first shop is free. Fazl checks each further shop before it opens.':
+    'آپ کی پہلی دکان مفت ہے۔ ہر اگلی دکان کھلنے سے پہلے فضل اسے دیکھتا ہے۔',
+  'Your Fazl wallet: {amount}': 'آپ کا فضل والٹ: {amount}',
+  '{amount} short': '{amount} کم',
+  'Once Fazl approves it, customers see it on Fazl and you can list products in it from here.':
+    'فضل کی منظوری کے بعد گاہک اسے فضل پر دیکھیں گے اور آپ یہاں سے اس میں مصنوعات لسٹ کر سکیں گے۔',
+  '{name} is removed and {amount} goes back to your Fazl wallet.':
+    '{name} ہٹا دی جائے گی اور {amount} آپ کے فضل والٹ میں واپس آ جائیں گے۔',
+  '{name} is removed.': '{name} ہٹا دی جائے گی۔',
+  'Waiting for approval': 'منظوری کا انتظار',
+  'Not approved': 'منظور نہیں ہوئی',
+  'Sent {time} · {amount} paid': '{time} بھیجی گئی · {amount} ادا کیے',
+  'Sent {time}': '{time} بھیجی گئی',
+  '{amount} is back in your wallet': '{amount} آپ کے والٹ میں واپس آ گئے',
+  'Your shop is approved': 'آپ کی دکان منظور ہو گئی',
+  "Your shop request wasn't approved": 'آپ کی دکان کی درخواست منظور نہیں ہوئی',
+  'Add money': 'رقم شامل کریں',
+  'Money added': 'رقم شامل ہو گئی',
+  '{amount} is now in your Fazl wallet.': '{amount} اب آپ کے فضل والٹ میں ہیں۔',
+  'The payment did not go through': 'ادائیگی نہیں ہو سکی',
+  'You were not charged.': 'آپ سے کوئی رقم نہیں کٹی۔',
+  'Enter an amount from {min} to {max}.': '{min} سے {max} تک رقم درج کریں۔',
+  'Enter the last 6 digits of the CNIC on the JazzCash account.':
+    'جاز کیش اکاؤنٹ والے شناختی کارڈ کے آخری 6 ہندسے درج کریں۔',
+  'Approve the payment on your phone': 'اپنے فون پر ادائیگی کی منظوری دیں',
+  'Finish paying on the card page': 'کارڈ والے صفحے پر ادائیگی مکمل کریں',
+  'Waiting for the payment to be confirmed': 'ادائیگی کی تصدیق کا انتظار ہے',
+  '{name} has sent a request to {number}. Enter your MPIN there to pay {amount}.':
+    '{name} نے {number} پر درخواست بھیجی ہے۔ {amount} ادا کرنے کے لیے وہاں اپنا MPIN درج کریں۔',
+  'Pay {amount} in the browser, then come back here. The money is added once JazzCash confirms it.': 'براؤزر میں {amount} ادا کریں، پھر یہاں واپس آئیں۔ جاز کیش کی تصدیق کے بعد رقم شامل ہو جائے گی۔',
+  'This can take a minute. You can leave this screen; the money is added either way.': 'اس میں ایک منٹ لگ سکتا ہے۔ آپ یہ اسکرین چھوڑ سکتے ہیں؛ رقم ہر حال میں شامل ہو جائے گی۔',
+  'Open the card page again': 'کارڈ والا صفحہ دوبارہ کھولیں',
+  "I've paid, check now": 'میں نے ادائیگی کر دی، ابھی چیک کریں',
+  'Pay {amount}': '{amount} ادا کریں',
+  Pay: 'ادا کریں',
+  'The money goes into your Fazl wallet, and Fazl takes the fee for another shop from it.': 'رقم آپ کے فضل والٹ میں جاتی ہے، اور فضل ایک اور دکان کی فیس اسی سے لیتا ہے۔',
+  'Adding money is paused for now. Please try again later.': 'رقم شامل کرنا ابھی بند ہے۔ براہ کرم بعد میں کوشش کریں۔',
+  'You need {amount} more for your new shop.': 'آپ کی نئی دکان کے لیے {amount} مزید چاہئیں۔',
+  'From {min} to {max}': '{min} سے {max} تک',
+  'Pay with': 'ادائیگی کا طریقہ',
+  'Pay from your JazzCash account': 'اپنے جاز کیش اکاؤنٹ سے ادا کریں',
+  'Pay from your Easypaisa account': 'اپنے ایزی پیسہ اکاؤنٹ سے ادا کریں',
+  'Debit or credit card': 'ڈیبٹ یا کریڈٹ کارڈ',
+  'Opens a secure card page': 'ایک محفوظ کارڈ والا صفحہ کھلتا ہے',
+  'Not available yet': 'ابھی دستیاب نہیں',
+  'Last 6 digits of CNIC': 'شناختی کارڈ کے آخری 6 ہندسے',
+  'Of the CNIC the JazzCash account is registered on': 'جس شناختی کارڈ پر جاز کیش اکاؤنٹ رجسٹرڈ ہے',
+  // Another shop's fee paid from the wallet, or with JazzCash, Easypaisa or a card then.
+  'Fazl wallet': 'فضل والٹ',
+  'Balance {amount}': 'بیلنس {amount}',
+  'Pay {amount} with {method}': '{method} سے {amount} ادا کریں',
+  "Your first shop is free. This one costs {fee}: pay from your Fazl wallet, or with JazzCash, Easypaisa or a card. If Fazl doesn't approve it, the money comes back to your Fazl wallet.":
+    'آپ کی پہلی دکان مفت ہے۔ اس کی فیس {fee} ہے: اپنے فضل والٹ سے ادا کریں، یا جاز کیش، ایزی پیسہ یا کارڈ سے۔ اگر فضل نے اسے منظور نہ کیا تو رقم آپ کے فضل والٹ میں واپس آ جائے گی۔',
+  'Another shop costs {fee}, and your Fazl wallet has {balance}. Add money first, or pay with JazzCash, Easypaisa or a card.':
+    'ایک اور دکان کی فیس {fee} ہے، اور آپ کے فضل والٹ میں {balance} ہیں۔ پہلے رقم شامل کریں، یا جاز کیش، ایزی پیسہ یا کارڈ سے ادا کریں۔',
+  'Pay for your shop': 'اپنی دکان کی ادائیگی',
+  "Your new shop's fee. Once it's paid, your shop is sent to Fazl for approval. If Fazl doesn't approve it, the money comes back to your Fazl wallet.":
+    'آپ کی نئی دکان کی فیس۔ ادائیگی کے بعد آپ کی دکان منظوری کے لیے فضل کو بھیج دی جائے گی۔ اگر فضل نے اسے منظور نہ کیا تو رقم آپ کے فضل والٹ میں واپس آ جائے گی۔',
+  "Your new shop's fee": 'آپ کی نئی دکان کی فیس',
+  'The smallest payment is {min}. What is left after the fee stays in your Fazl wallet.':
+    'کم از کم ادائیگی {min} ہے۔ فیس کے بعد باقی رقم آپ کے فضل والٹ میں رہے گی۔',
+  // The payment page for another shop's fee, and paying by card inside the app.
+  'Fee for this shop': 'اس دکان کی فیس',
+  'Fill in the details, then choose how to pay.': 'تفصیلات درج کریں، پھر ادائیگی کا طریقہ منتخب کریں۔',
+  'Amount to pay': 'ادا کرنے کی رقم',
+  'Pay {amount} from wallet': 'والٹ سے {amount} ادا کریں',
+  'Not available right now': 'ابھی دستیاب نہیں',
+  "Enter your card's details on JazzCash's secure page": 'جاز کیش کے محفوظ صفحے پر اپنے کارڈ کی تفصیلات درج کریں',
+  'Card payment': 'کارڈ سے ادائیگی',
+  "Enter your card's details on the card page to pay {amount}. This moves on once JazzCash confirms it.":
+    '{amount} ادا کرنے کے لیے کارڈ والے صفحے پر اپنے کارڈ کی تفصیلات درج کریں۔ جاز کیش کی تصدیق کے بعد یہ آگے بڑھ جائے گا۔',
 };
 
 export default ur;

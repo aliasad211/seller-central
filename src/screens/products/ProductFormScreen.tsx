@@ -23,7 +23,6 @@ import {
   MediaPicker,
   PickedMedia,
   Screen,
-  Segmented,
   StateView,
   TextField,
   ToggleRow,
@@ -47,7 +46,8 @@ import { AddDetailsSheet, ParameterValueSheet } from './ParameterSheets';
 import { t } from '../../i18n';
 
 /** Fazl's own limit for one listing. */
-const MAX_PHOTOS = 5;
+/** A listing takes up to ten photos (the backend's MAX_PRODUCT_IMAGES). */
+const MAX_PHOTOS = 10;
 
 type Field = 'images' | 'title' | 'description' | 'category' | 'price' | 'parameters';
 type Errors = Partial<Record<Field, string>>;
@@ -82,8 +82,9 @@ export function ProductFormScreen({ route, navigation }: RootScreenProps<'Produc
   const [categoryId, setCategoryId] = useState('');
   const [parameters, setParameters] = useState<FormParameter[]>([]);
   const [price, setPrice] = useState('');
-  // A new product is sold on Fazl (Retail) unless the seller picks Classified;
-  // an existing one keeps its own type (set when it loads).
+  // What Seller Central lists is retail (Fazl sets it so too); a classified
+  // listing is posted from the Fazl app. An existing one keeps its own type
+  // (set when it loads), shown here but not changed.
   const [listingType, setListingType] = useState<ListingType>('retail');
   const [available, setAvailable] = useState(true);
   const [wasAvailable, setWasAvailable] = useState(true);
@@ -435,21 +436,11 @@ export function ProductFormScreen({ route, navigation }: RootScreenProps<'Produc
         <AppText variant="bodyBold" style={styles.typeLabel}>
           {t('Type')}
         </AppText>
-        <Segmented
-          options={[
-            { key: 'retail', label: t('Retail') },
-            { key: 'classified', label: t('Classified') },
-          ]}
-          value={listingType}
-          onChange={next => {
-            setListingType(next);
-            clearError('price');
-          }}
-        />
+        <AppText>{listingType === 'retail' ? t('Retail') : t('Classified')}</AppText>
         <AppText variant="caption" color={colors.textMuted} style={styles.typeHint}>
           {listingType === 'retail'
-            ? t('Customers buy it on Fazl with Buy now or Add to cart, and the order comes to you here.')
-            : t('Customers contact you about it (chat, offer, WhatsApp); it can\'t be ordered on Fazl.')}
+            ? t('Customers buy it on Fazl with Buy now or Add to cart, and the order comes to you here. Classified listings are posted from the Fazl app.')
+            : t("Posted from the Fazl app: customers contact you about it (chat, offer, WhatsApp); it can't be ordered on Fazl.")}
         </AppText>
       </Section>
 

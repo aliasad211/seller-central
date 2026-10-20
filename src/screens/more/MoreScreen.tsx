@@ -15,11 +15,12 @@ import {
   Settings,
   Store,
   Truck,
+  Users,
   Wallet,
 } from 'lucide-react-native';
 import { ChevronForward } from '../../components/Chevrons';
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Alert, Image, StyleSheet, View } from 'react-native';
 import { AppText, Card, Header, IconCircle, ListRow, Screen } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
 import { useAuth } from '../../state/AuthContext';
@@ -30,7 +31,7 @@ import { FEATURES } from '../../config';
 
 type Target = Exclude<
   keyof RootStackParamList,
-  'Login' | 'NoShop' | 'Tabs' | 'OrderDetail' | 'AssignRider' | 'CourierForm' | 'CampaignDetail' | 'VideoPlayer'
+  'Login' | 'NoShop' | 'Tabs' | 'OrderDetail' | 'AssignRider' | 'CourierForm' | 'CampaignDetail' | 'VideoPlayer' | 'TeamMemberForm' | 'SelfDelivery'
 >;
 
 const GROUPS: { title: string; items: { label: string; hint: string; icon: LucideIcon; tone: Tone; to: Target }[] }[] = [
@@ -65,6 +66,7 @@ const GROUPS: { title: string; items: { label: string; hint: string; icon: Lucid
     title: t('Account'),
     items: [
       { label: t('Business Profile'), hint: t('Your shop page on Fazl'), icon: Store, tone: 'primary', to: 'BusinessProfile' },
+      { label: t('Team'), hint: t('People who help run your shops'), icon: Users, tone: 'info', to: 'Team' },
       { label: t('Notifications'), hint: t('Orders, stock and riders'), icon: Bell, tone: 'secondary', to: 'Notifications' },
       { label: t('Settings'), hint: t('Alerts, stock level, account'), icon: Settings, tone: 'neutral', to: 'Settings' },
     ],
@@ -75,10 +77,39 @@ export function MoreScreen() {
   const navigation = useNavigation();
   const { seller, signOut } = useAuth();
   const shop = seller?.shop;
+  const member = seller?.member;
+  const perms = member?.permissions ?? ['orders', 'products', 'marketing'];
+
+  const filteredGroups = GROUPS.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      if (item.to === 'Earnings' || item.to === 'BusinessProfile' || item.to === 'Team') {
+        return !member; // Owner only
+      }
+      if (item.to === 'Inventory' || item.to === 'Pricing') {
+        return !member || perms.includes('products');
+      }
+      if (item.to === 'Posts' || item.to === 'Ads') {
+        return !member || perms.includes('marketing');
+      }
+      if (item.to === 'Returns' || item.to === 'LocalDelivery' || item.to === 'Shipping') {
+        return !member || perms.includes('orders');
+      }
+      return true;
+    }),
+  })).filter(g => g.items.length > 0);
+
+  const onShopPress = () => {
+    if (member) {
+      Alert.alert(t('Business profile'), t('Only the shop owner can edit the business profile.'));
+      return;
+    }
+    navigation.navigate('BusinessProfile');
+  };
 
   return (
     <Screen header={<Header title={t('More')} back={false} />} bottomInset={false}>
-      <Card onPress={() => navigation.navigate('BusinessProfile')} style={styles.shop}>
+      <Card onPress={onShopPress} style={styles.shop}>
         {shop?.logo ? <Image source={{ uri: shop.logo }} style={styles.logo} /> : <IconCircle icon={Store} size={56} />}
         <View style={styles.flex}>
           <AppText variant="subheading" numberOfLines={1}>
@@ -90,9 +121,15 @@ export function MoreScreen() {
               {shop?.area}, {shop?.city}
             </AppText>
           </View>
-          <AppText variant="caption" color={colors.primary}>
-            {t('View business profile')}
-          </AppText>
+          {member ? (
+            <AppText variant="caption" color={colors.primary}>
+              {t('Team Member')} ({perms.join(', ')})
+            </AppText>
+          ) : (
+            <AppText variant="caption" color={colors.primary}>
+              {t('View business profile')}
+            </AppText>
+          )}
         </View>
         <ChevronForward size={20} color={colors.textSubtle} />
       </Card>
@@ -108,7 +145,7 @@ export function MoreScreen() {
             onPress={() => navigation.navigate('ChooseShop')}
           />
         </Card>
-      ) : (
+      ) : !member ? (
         <Card padded={false} style={[styles.group, styles.switchCard]}>
           <ListRow
             icon={Plus}
@@ -118,9 +155,9 @@ export function MoreScreen() {
             onPress={() => navigation.navigate('CreateShop')}
           />
         </Card>
-      )}
+      ) : null}
 
-      {GROUPS.map(group => (
+      {filteredGroups.map(group => (
         <View key={group.title}>
           <AppText variant="label" color={colors.textMuted} style={styles.groupTitle}>
             {group.title.toUpperCase()}

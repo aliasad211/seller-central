@@ -102,15 +102,26 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        // Seller Central's own key, from ~/.gradle/gradle.properties (never
+        // committed). Its SHA-1 is the one registered for Google sign-in under
+        // com.fazlapp.sellercenter; the debug key's was taken by another project.
+        if (project.hasProperty("SELLER_CENTRAL_STORE_FILE")) {
+            release {
+                storeFile file(SELLER_CENTRAL_STORE_FILE)
+                storePassword SELLER_CENTRAL_STORE_PASSWORD
+                keyAlias SELLER_CENTRAL_KEY_ALIAS
+                keyPassword SELLER_CENTRAL_KEY_PASSWORD
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Signed with Seller Central's own key when this machine has it,
+            // else with the debug key (Google sign-in won't work then).
+            signingConfig project.hasProperty("SELLER_CENTRAL_STORE_FILE") ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }

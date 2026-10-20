@@ -19,6 +19,8 @@ export interface Shop {
   /** Fazl category ids; they decide which categories its products may use. */
   categoryId?: string;
   subcategoryId?: string;
+  /** Delivery charge in PKR the owner has set; 0 means free delivery. */
+  deliveryCharge?: number;
 }
 
 export interface Seller {
@@ -31,6 +33,50 @@ export interface Seller {
   shops: Shop[];
   /** The one Seller Central is managing; null until one is chosen (or none exist). */
   shop: Shop | null;
+  /** Present only when this session belongs to a team member (not the owner). */
+  member?: SellerMember;
+}
+
+export type SellerMemberPermission = 'orders' | 'products' | 'marketing';
+
+/** A shop-owner's team member, logged in through the team login screen. */
+export interface SellerMember {
+  id: string;
+  name: string;
+  email: string;
+  /** What this member is allowed to do in Seller Central. */
+  permissions: SellerMemberPermission[];
+  /** The user id of the shop owner whose account this member operates under. */
+  ownerId: string;
+}
+
+/** "invited" until they join with the emailed code; "expired" once it runs out. */
+export type TeamMemberStatus = 'invited' | 'expired' | 'active' | 'disabled';
+
+/** A manager works on orders, products or ads; a rider delivers the shop's own deliveries. */
+export type TeamMemberRole = 'manager' | 'rider';
+
+/** Someone on the owner's team, as the owner manages them (More > Team). */
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: TeamMemberRole;
+  /** A rider's number, to call them about a delivery. */
+  phone?: string | null;
+  /** A rider's are always just orders. */
+  permissions: SellerMemberPermission[];
+  status: TeamMemberStatus;
+  joinedAt?: string | null;
+  inviteExpiresAt?: string | null;
+  lastSeenAt?: string | null;
+}
+
+/** A team rider, as offered when an order goes out for self delivery. */
+export interface TeamRider {
+  id: string;
+  name: string;
+  phone?: string | null;
 }
 
 /** One kind of choice a product comes in, e.g. Size: S, M, L. */
@@ -233,6 +279,8 @@ export interface AppNotification {
   read: boolean;
   orderId?: string;
   productId?: string;
+  /** Fazl's answer to a request for another shop: opens the shop list. */
+  shopRequest?: boolean;
 }
 
 export interface SellerSettings {

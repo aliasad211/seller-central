@@ -53,6 +53,8 @@ export function NotificationsScreen({ navigation }: RootScreenProps<'Notificatio
     if (n.orderId) navigation.navigate('OrderDetail', { orderId: n.orderId });
     else if (n.productId) navigation.navigate('Tabs', { screen: 'Products' });
     else if (n.type === 'ad') navigation.navigate('Ads');
+    // An approved shop is now in the list to switch to; a rejected one's fee is back.
+    else if (n.shopRequest) navigation.navigate('ChooseShop');
   };
 
   return (

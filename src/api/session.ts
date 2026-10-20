@@ -46,6 +46,7 @@ interface BackendShop {
   isDisabled?: boolean;
   categoryId?: string | null;
   subcategoryId?: string | null;
+  deliveryCharge?: number | null;
 }
 
 /** A name in the app's language (falling back to the other one). */
@@ -69,6 +70,7 @@ function toShop(s: BackendShop, ownerName: string): Shop {
     disabled: !!s.isDisabled,
     categoryId: s.categoryId ?? undefined,
     subcategoryId: s.subcategoryId ?? undefined,
+    deliveryCharge: s.deliveryCharge ?? 0,
   };
 }
 
@@ -195,7 +197,8 @@ export async function restoreSession(onLastShop?: OnLastShop): Promise<Seller | 
     return null;
   }
   try {
-    return await sellerFor(profileFrom(saved), onLastShop);
+    const seller = await sellerFor(profileFrom(saved), onLastShop);
+    return saved.member ? { ...seller, member: saved.member } : seller;
   } catch (e) {
     if (e instanceof ApiError && e.status === 0) {
       // Offline: the saved copy (one saved by an older version has no list,
@@ -210,15 +213,125 @@ export async function restoreSession(onLastShop?: OnLastShop): Promise<Seller | 
 }
 
 export async function logout(): Promise<void> {
-  const refreshToken = currentTokens()?.refreshToken;
-  if (refreshToken) {
-    // Best effort: the session ends on this phone either way.
-    await api('/auth/logout', { method: 'POST', body: { token: refreshToken } }).catch(() => undefined);
+  const tokens = currentTokens();
+  if (tokens?.refreshToken) {
+    if (tokens.isMember) {
+      await api('/seller/members/session/logout', {
+        method: 'POST',
+        body: { token: tokens.refreshToken },
+      }).catch(() => undefined);
+    } else {
+      // Best effort: the session ends on this phone either way.
+      await api('/auth/logout', { method: 'POST', body: { token: tokens.refreshToken } }).catch(() => undefined);
+    }
   }
   await clearSession();
 }
 
 async function clearSession() {
   await saveTokens(null);
-  await AsyncStorage.removeItem(SELLER_KEY);
+  await Promise.all([AsyncStorage.removeItem(SELLER_KEY), AsyncStorage.removeItem(MEMBER_KEY)]);
 }
+
+// ─── Team-member login ────────────────────────────────────────────────────────
+// Members use a different backend endpoint (/seller/members/session/login) and
+// get a token whose principal is "seller_member". They see the same shop the
+// owner's account manages — but only the routes the owner allowed them.
+
+const MEMBER_KEY = 'sellerCentral.member';
+
+interface BackendMember {
+  id: string;
+  name: string;
+  email: string;
+  permissions: string[];
+  ownerId: string;
+}
+
+/**
+ * Logs in as a team member. The returned Seller uses the member's own name and
+ * email for the UI, but the `member` field carries their id and permissions so
+ * the rest of the app can check them.
+ */
+export async function loginAsMember(
+  email: string,
+  password: string,
+  onLastShop?: OnLastShop,
+): Promise<Seller> {
+  const data = await api<MemberSession>('/seller/members/session/login', {
+    method: 'POST',
+    body: { email, password },
+    auth: false,
+  });
+  return memberSignedIn(data, onLastShop);
+}
+
+/**
+ * Joins the owner's team with the 6-digit code from the invite email,
+ * choosing a password, and logs in as that team member.
+ */
+export async function joinTeamWithInvite(
+  email: string,
+  code: string,
+  password: string,
+  onLastShop?: OnLastShop,
+): Promise<Seller> {
+  const data = await api<MemberSession>('/seller/members/session/accept-invite', {
+    method: 'POST',
+    body: { email, code, password },
+    auth: false,
+  });
+  return memberSignedIn(data, onLastShop);
+}
+
+interface MemberSession {
+  accessToken: string;
+  refreshToken: string;
+  member: BackendMember;
+}
+
+async function memberSignedIn(data: MemberSession, onLastShop?: OnLastShop): Promise<Seller> {
+  await saveTokens({
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken,
+    isMember: true,
+  });
+
+  // The member acts under the owner's account but with restricted access.
+  const memberInfo: import('../types/models').SellerMember = {
+    id: data.member.id,
+    name: data.member.name,
+    email: data.member.email,
+    permissions: data.member.permissions as import('../types/models').SellerMemberPermission[],
+    ownerId: data.member.ownerId,
+  };
+
+  // Load the owner's shops (the token's sub = ownerId, so /shops/userShops works).
+  const seller = await sellerFor(
+    {
+      id: data.member.ownerId,
+      name: data.member.name,
+      email: data.member.email,
+    },
+    onLastShop,
+  );
+
+  const withMember: Seller = { ...seller, member: memberInfo };
+  await AsyncStorage.setItem(MEMBER_KEY, JSON.stringify(memberInfo));
+  await AsyncStorage.setItem(SELLER_KEY, JSON.stringify(withMember));
+  return withMember;
+}
+
+/** Logs out a team member, using their own logout endpoint. */
+export async function logoutMember(): Promise<void> {
+  const refreshToken = currentTokens()?.refreshToken;
+  if (refreshToken) {
+    await api('/seller/members/session/logout', {
+      method: 'POST',
+      body: { token: refreshToken },
+    }).catch(() => undefined);
+  }
+  await saveTokens(null);
+  await Promise.all([AsyncStorage.removeItem(SELLER_KEY), AsyncStorage.removeItem(MEMBER_KEY)]);
+}
+

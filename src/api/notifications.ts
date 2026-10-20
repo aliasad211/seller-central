@@ -1,6 +1,7 @@
 // The seller's real notifications on Fazl: a new order for their shop, a like
-// or an offer on one of their listings (the backend's "selling" ones — their
-// own buying and chats stay in the Fazl app). The same ones arrive as push
+// or an offer on one of their listings, and Fazl's answer to a request for
+// another shop (the backend's "selling" ones — their own buying and chats stay
+// in the Fazl app). The same ones arrive as push
 // notifications (src/push.ts).
 import { AppNotification } from '../types/models';
 import { api } from './http';
@@ -8,7 +9,7 @@ import { t } from '../i18n';
 
 interface BackendNotification {
   id: string;
-  type: 'ORDER' | 'LIKE' | 'PRODUCT_OFFER' | string;
+  type: 'ORDER' | 'LIKE' | 'PRODUCT_OFFER' | 'ANNOUNCEMENT' | string;
   message: string;
   read: boolean;
   createdAt: string;
@@ -18,6 +19,9 @@ interface BackendNotification {
     shopId?: string;
     productId?: string;
     itemId?: string;
+    /** "shop_request": Fazl approved or rejected it (`status`). */
+    kind?: string;
+    status?: string;
   } | null;
 }
 
@@ -32,6 +36,17 @@ function toNotification(n: BackendNotification): AppNotification {
       createdAt: n.createdAt,
       read: n.read,
       ...(p.orderId ? { orderId: p.orderId } : {}),
+    };
+  }
+  if (n.type === 'ANNOUNCEMENT' && p.kind === 'shop_request') {
+    return {
+      id: n.id,
+      type: 'system',
+      title: p.status === 'approved' ? t('Your shop is approved') : t("Your shop request wasn't approved"),
+      body: n.message,
+      createdAt: n.createdAt,
+      read: n.read,
+      shopRequest: true,
     };
   }
   const productId = p.productId ?? p.itemId;

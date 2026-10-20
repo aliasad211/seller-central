@@ -41,6 +41,8 @@ interface BackendOrder {
   deliveryOption: 'delivery' | 'self-pickup';
   /** Who is taking it to the customer, once it leaves the shop. */
   deliveryMethod?: 'self' | 'rider' | 'courier' | null;
+  /** The shop's team rider taking it, when the shop delivers it itself. */
+  deliveryMember?: { id: string; name: string; phone?: string | null } | null;
   /** The courier and its tracking ID (orders sent by courier). */
   courierName?: string | null;
   trackingId?: string | null;
@@ -105,6 +107,14 @@ function deliveryOf(o: BackendOrder): Order['delivery'] {
     ...(o.deliveryMethod === 'self' || o.deliveryMethod === 'rider'
       ? { method: o.deliveryMethod }
       : {}),
+    // Delivering it themselves, through one of the team's riders.
+    ...(o.deliveryMethod === 'self' && o.deliveryMember
+      ? {
+          riderId: o.deliveryMember.id,
+          riderName: o.deliveryMember.name,
+          riderPhone: o.deliveryMember.phone ?? undefined,
+        }
+      : {}),
   };
 }
 
@@ -142,6 +152,10 @@ function toOrder(o: BackendOrder): Order {
     .map(v => String(v ?? '').trim())
     .filter(Boolean)
     .join(' / ');
+  // The backend now stores a snapshot of the shop's delivery charge on the order.
+  // Older orders pre-dating this feature have deliveryCharge = 0.
+  const deliveryCharge = Math.round(Number((o as any).deliveryCharge ?? 0));
+  const subtotal = Math.max(0, (o.amount || 0) - deliveryCharge);
   return {
     id: o.id,
     number: o.orderCode || `#${o.id.slice(-6).toUpperCase()}`,
@@ -162,14 +176,12 @@ function toOrder(o: BackendOrder): Order {
         image: cardImage(o.product?.images?.[0] ?? undefined),
         ...(variant ? { variant } : {}),
         qty,
-        unitPrice: Math.round((o.amount || 0) / qty),
+        unitPrice: Math.round(subtotal / qty),
       },
     ],
     payment: o.paymentType === 'Easypaisa' ? 'easypaisa' : 'cod',
-    // What the customer pays, as the order says; Fazl charges and delivery
-    // fees aren't split out on Fazl yet.
-    subtotal: o.amount || 0,
-    deliveryCharge: 0,
+    subtotal,
+    deliveryCharge,
     discount: 0,
     fazlCharge: 0,
     // What was paid back; it comes off the seller's earnings.
@@ -287,6 +299,8 @@ export async function getShopOrder(shopId: string, orderId: string): Promise<Ord
  *  order when left out). */
 export interface StatusDetails {
   deliveryMethod?: 'self' | 'courier';
+  /** With "self": the team rider taking it; none when the seller takes it. */
+  deliveryMemberId?: string;
   courierName?: string;
   trackingId?: string;
   reason?: string;

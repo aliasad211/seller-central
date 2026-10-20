@@ -165,6 +165,8 @@ export interface ShopProfileDraft {
   categoryId?: string;
   logo?: UploadFile;
   banner?: UploadFile;
+  /** Delivery charge in PKR (whole rupees); 0 means free delivery. */
+  deliveryCharge?: number;
 }
 
 /**
@@ -181,6 +183,8 @@ export async function updateShopProfile(shopId: string, d: ShopProfileDraft): Pr
   form.append('city', d.city);
   form.append('contact', d.contact);
   form.append('openingHours', d.openingHours);
+  if (d.deliveryCharge !== undefined)
+    form.append('deliveryCharge', String(Math.round(Number(d.deliveryCharge) || 0)));
   if (d.categoryId) {
     // As the Fazl app sends it: the subcategory mirrors the category.
     form.append('category', d.categoryId);
@@ -192,8 +196,16 @@ export async function updateShopProfile(shopId: string, d: ShopProfileDraft): Pr
   await api(`/shops/${shopId}`, { method: 'PUT', form });
 }
 
-/** Creates the shop on Fazl for the logged-in account; resolves with its id. */
-export async function createShop(d: ShopDraft): Promise<string> {
+/**
+ * Creates the shop on Fazl for the logged-in account. The account's first
+ * shop opens straight away; a further one is paid for from the Fazl wallet
+ * (`extraShopFeeMinor`, the fee the owner agreed to — see getNewShopTerms) and
+ * waits for Fazl's approval (`awaitingApproval`).
+ */
+export async function createShop(
+  d: ShopDraft,
+  extraShopFeeMinor?: number,
+): Promise<{ id: string; awaitingApproval: boolean }> {
   const form = new FormData();
   form.append('title', d.title);
   form.append('description', d.description);
@@ -209,6 +221,7 @@ export async function createShop(d: ShopDraft): Promise<string> {
   // React Native's FormData takes { uri, name, type } as a file.
   if (d.logo) form.append('image', d.logo as unknown as Blob);
   if (d.banner) form.append('banner', d.banner as unknown as Blob);
-  const shop = await api<{ id: string }>('/shops/create', { method: 'POST', form });
-  return shop.id;
+  if (extraShopFeeMinor !== undefined) form.append('extraShopFeeMinor', String(extraShopFeeMinor));
+  const shop = await api<{ id: string; awaitingApproval?: boolean }>('/shops/create', { method: 'POST', form });
+  return { id: shop.id, awaitingApproval: !!shop.awaitingApproval };
 }

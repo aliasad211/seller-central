@@ -8,9 +8,10 @@ import {
   Plus,
 } from 'lucide-react-native';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components';
+import { useAuth } from '../state/AuthContext';
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { MoreScreen } from '../screens/more/MoreScreen';
 import { OrdersScreen } from '../screens/orders/OrdersScreen';
@@ -87,6 +88,12 @@ const tabIconFor =
 
 export function MainTabs() {
   const { bottom } = useSafeAreaInsets();
+  const { seller } = useAuth();
+  const member = seller?.member;
+  const perms = member?.permissions ?? ['orders', 'products', 'marketing'];
+  const hasOrders = !member || perms.includes('orders');
+  const hasProducts = !member || perms.includes('products');
+  const hasMarketing = !member || perms.includes('marketing');
 
   return (
     <Tab.Navigator
@@ -100,7 +107,21 @@ export function MainTabs() {
       })}
     >
       <Tab.Screen name="Home" component={DashboardScreen} />
-      <Tab.Screen name="Orders" component={OrdersScreen} />
+      <Tab.Screen
+        name="Orders"
+        component={OrdersScreen}
+        listeners={{
+          tabPress: e => {
+            if (!hasOrders) {
+              e.preventDefault();
+              Alert.alert(
+                t('Access restricted'),
+                t("You don't have permission to manage orders. Ask the shop owner to grant permission.")
+              );
+            }
+          },
+        }}
+      />
       <Tab.Screen
         name="AddPostTab"
         component={NoScreen}
@@ -108,11 +129,32 @@ export function MainTabs() {
         listeners={({ navigation }) => ({
           tabPress: e => {
             e.preventDefault();
+            if (!hasMarketing) {
+              Alert.alert(
+                t('Access restricted'),
+                t("You don't have permission to create posts or ads. Ask the shop owner to grant permission.")
+              );
+              return;
+            }
             navigation.getParent()?.navigate('AddPost');
           },
         })}
       />
-      <Tab.Screen name="Products" component={ProductsScreen} />
+      <Tab.Screen
+        name="Products"
+        component={ProductsScreen}
+        listeners={{
+          tabPress: e => {
+            if (!hasProducts) {
+              e.preventDefault();
+              Alert.alert(
+                t('Access restricted'),
+                t("You don't have permission to manage products. Ask the shop owner to grant permission.")
+              );
+            }
+          },
+        }}
+      />
       <Tab.Screen name="More" component={MoreScreen} />
     </Tab.Navigator>
   );

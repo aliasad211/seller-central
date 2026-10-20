@@ -97,6 +97,8 @@ function DeliveryRow({ order, onPress }: { order: Order; onPress: () => void }) 
   const line =
     order.status === 'ready'
       ? [order.customer.address, t('ready {time}', { time: timeAgo(last) })].filter(Boolean).join(' · ')
+      : order.delivery.method === 'self' && order.delivery.riderName
+      ? t('{name} is delivering', { name: order.delivery.riderName })
       : order.delivery.method === 'self'
       ? t('You are delivering')
       : t('Shipped');

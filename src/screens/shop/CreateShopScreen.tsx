@@ -1,9 +1,12 @@
-import { Camera, Info, MapPin, Store } from 'lucide-react-native';
+import { BadgeCheck, Camera, Info, MapPin, Store } from 'lucide-react-native';
 import { ChevronForward } from '../../components/Chevrons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Asset, launchImageLibrary } from 'react-native-image-picker';
+import { ApiError } from '../../api/http';
 import { ShopCategory, UploadFile } from '../../api/shopContent';
+import { getNewShopTerms, NewShopTerms } from '../../api/shopRequests';
 import {
   createShop,
   LatLng,
@@ -14,7 +17,8 @@ import {
   searchAreas,
   shopTypeCategories,
 } from '../../api/shopSetup';
-import { AppText, Button, Header, Screen, TextField } from '../../components';
+import { AppText, Button, Card, Header, IconCircle, Screen, TextField } from '../../components';
+import { formatRs } from '../../utils/format';
 import { RootScreenProps } from '../../navigation/types';
 import { useAuth } from '../../state/AuthContext';
 import { colors, fonts, radius, spacing, themedStyles } from '../../theme';
@@ -46,8 +50,15 @@ export const asUpload = (a: Asset): UploadFile => ({
  * Its place on the map is the Store Pin location when one is dropped (which
  * also fills City and Area), else its area's point when the area list knows
  * it, else its city's — where the Fazl app puts a shop without a pin.
+ *
+ * The account's first shop is free and opens at once. Any further one costs
+ * the fee Fazl sets and waits for Fazl's approval; the shop list shows it
+ * meanwhile. Its "Pay & send for approval" opens the payment page (AddCoins
+ * with `shopFee`): the Fazl wallet, JazzCash, Easypaisa or a card. Once it's
+ * paid, that page comes back here (`fromWalletAt` / `paidFor`) and the shop
+ * is sent for approval, the fee taken from the wallet.
  */
-export function CreateShopScreen({ navigation }: RootScreenProps<'CreateShop'>) {
+export function CreateShopScreen({ navigation, route }: RootScreenProps<'CreateShop'>) {
   const { seller, shopCreated } = useAuth();
   const [banner, setBanner] = useState<UploadFile | null>(null);
   const [logo, setLogo] = useState<UploadFile | null>(null);
@@ -70,6 +81,23 @@ export function CreateShopScreen({ navigation }: RootScreenProps<'CreateShop'>) 
   const [loadingCities, setLoadingCities] = useState(true);
   const [loadingAreas, setLoadingAreas] = useState(false);
   const [picking, setPicking] = useState<'category' | 'city' | 'area' | 'map' | null>(null);
+  // What another shop takes (fee, wallet, limit). Read again on coming back
+  // from Add coins. Without it the backend still decides.
+  const [terms, setTerms] = useState<NewShopTerms | null>(null);
+
+  const loadTerms = useCallback(() => {
+    getNewShopTerms().then(setTerms).catch(() => undefined);
+  }, []);
+  useFocusEffect(loadTerms);
+
+  const extra = !!terms?.needsApproval;
+  const fee = terms?.fee ?? 0;
+
+  // Back from the payment page, paid: the shop goes for approval, its fee
+  // taken from the wallet (a gateway payment went into it). Once per payment.
+  const paidFor = route.params?.paidFor;
+  const fromWalletAt = route.params?.fromWalletAt;
+  const handledPayment = useRef<string | null>(null);
 
   // On to Home once the new shop is open. This screen is part of every stage
   // of the app (no shop yet, choosing one, managing one), so it doesn't go
@@ -155,11 +183,25 @@ export function CreateShopScreen({ navigation }: RootScreenProps<'CreateShop'>) 
     return next;
   };
 
-  const save = async () => {
+  const save = () => {
     const found = validate();
     setErrors(found);
-    if (Object.keys(found).length || !city || !area || !category) return;
+    if (Object.keys(found).length) return;
+    if (terms && !terms.canCreate) {
+      Alert.alert(t('Shop limit reached'), t('You can have up to {count} shops on Fazl, counting ones waiting for approval.', { count: terms.maxShops }));
+      return;
+    }
+    // Another shop's fee: the payment page (wallet, JazzCash, Easypaisa or
+    // card). It comes back here once paid, and the shop is sent then.
+    if (extra && fee > 0) {
+      navigation.navigate('AddCoins', { shopFee: fee });
+      return;
+    }
+    submit();
+  };
 
+  const submit = async () => {
+    if (!city || !area || !category) return;
     setSaving(true);
     let shopId: string;
     try {
@@ -174,20 +216,38 @@ export function CreateShopScreen({ navigation }: RootScreenProps<'CreateShop'>) 
         setSaving(false);
         return;
       }
-      shopId = await createShop({
-        title: name.trim(),
-        description: description.trim(),
-        categoryId: category.id,
-        marketName: marketName.trim(),
-        contact: contact.trim(),
-        city: city.name,
-        area: area.name,
-        at,
-        address: pinned?.address,
-        logo: logo ?? undefined,
-        banner: banner ?? undefined,
-      });
+      const created = await createShop(
+        {
+          title: name.trim(),
+          description: description.trim(),
+          categoryId: category.id,
+          marketName: marketName.trim(),
+          contact: contact.trim(),
+          city: city.name,
+          area: area.name,
+          at,
+          address: pinned?.address,
+          logo: logo ?? undefined,
+          banner: banner ?? undefined,
+        },
+        extra ? terms?.feeMinor : undefined,
+      );
+      if (created.awaitingApproval) {
+        // Not a shop to manage yet: it shows in the shop list as waiting.
+        Alert.alert(
+          t('Sent for approval'),
+          t("Fazl will check {name} and let you know. Once it's approved it opens on Fazl and shows in your shops.", {
+            name: name.trim(),
+          }),
+          [{ text: t('OK'), onPress: () => navigation.goBack() }],
+          { cancelable: false },
+        );
+        return;
+      }
+      shopId = created.id;
     } catch (e) {
+      // The fee changed meanwhile (409): show the new one before trying again.
+      if (e instanceof ApiError && e.status === 409) loadTerms();
       Alert.alert(t('Failed to create shop'), e instanceof Error ? e.message : '');
       setSaving(false);
       return;
@@ -210,11 +270,69 @@ export function CreateShopScreen({ navigation }: RootScreenProps<'CreateShop'>) 
     Alert.alert(t('Success'), t('Shop created successfully. It is on Fazl now, and you can list your products in it.'));
   };
 
+  useEffect(() => {
+    const payment = paidFor ?? (fromWalletAt ? `wallet-${fromWalletAt}` : null);
+    if (!payment || handledPayment.current === payment) return;
+    handledPayment.current = payment;
+    submit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paidFor, fromWalletAt]);
+
   return (
     <Screen
       header={<Header title={t('Create a shop')} />}
-      footer={<Button title={t('Create shop')} flex loading={saving} loadingText={t('Creating')} disabled={saving} onPress={save} />}
+      footer={
+        <Button
+          title={
+            !extra
+              ? t('Create shop')
+              : fee > 0
+                ? t('Pay {amount} & send for approval', { amount: formatRs(fee) })
+                : t('Send for approval')
+          }
+          flex
+          loading={saving}
+          loadingText={extra ? t('Sending') : t('Creating')}
+          disabled={saving || terms?.canCreate === false}
+          onPress={save}
+        />
+      }
     >
+      {extra && terms ? (
+        <Card style={styles.terms}>
+          <View style={styles.termsHead}>
+            <IconCircle icon={BadgeCheck} tone="primary" size={40} />
+            <View style={styles.flex}>
+              <AppText variant="bodyBold">{t('Another shop needs Fazl\'s approval')}</AppText>
+              <AppText variant="caption" color={colors.textMuted}>
+                {fee > 0
+                  ? t("Your first shop is free. This one costs {fee}: pay from your Fazl wallet, or with JazzCash, Easypaisa or a card. If Fazl doesn't approve it, the money comes back to your Fazl wallet.", {
+                      fee: formatRs(fee),
+                    })
+                  : t('Your first shop is free. Fazl checks each further shop before it opens.')}
+              </AppText>
+            </View>
+          </View>
+          {!terms.canCreate ? (
+            <AppText variant="label" color={colors.danger}>
+              {t('You can have up to {count} shops on Fazl, counting ones waiting for approval.', { count: terms.maxShops })}
+            </AppText>
+          ) : fee > 0 ? (
+            <View style={styles.feeRow}>
+              <View style={styles.flex}>
+                <AppText variant="label" color={colors.textMuted}>
+                  {t('Fee for this shop')}
+                </AppText>
+                <AppText variant="caption" color={colors.textMuted}>
+                  {t('Fill in the details, then choose how to pay.')}
+                </AppText>
+              </View>
+              <AppText variant="subheading">{formatRs(fee)}</AppText>
+            </View>
+          ) : null}
+        </Card>
+      ) : null}
+
       <AppText variant="subheading">{t('Add your shop details')}</AppText>
       <AppText color={colors.textMuted} style={styles.intro}>
         {t('Please fill the details to create a shop.')}
@@ -333,7 +451,9 @@ export function CreateShopScreen({ navigation }: RootScreenProps<'CreateShop'>) 
       <View style={styles.note}>
         <Info size={16} color={colors.textMuted} />
         <AppText variant="caption" color={colors.textMuted} style={styles.flex}>
-          {t('Your shop is created on Fazl, so customers see it there too. You can then list products in it from here.')}
+          {extra
+            ? t('Once Fazl approves it, customers see it on Fazl and you can list products in it from here.')
+            : t('Your shop is created on Fazl, so customers see it there too. You can then list products in it from here.')}
         </AppText>
       </View>
 
@@ -427,6 +547,9 @@ export function PickerField({
 const styles = themedStyles(() => StyleSheet.create({
   flex: { flex: 1 },
   intro: { marginTop: spacing.xs, marginBottom: spacing.lg },
+  terms: { gap: spacing.md, marginBottom: spacing.lg },
+  termsHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  feeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   label: { marginBottom: spacing.sm },
   banner: {
     height: 140,

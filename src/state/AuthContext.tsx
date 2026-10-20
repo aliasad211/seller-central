@@ -5,6 +5,8 @@ import { forgetGoogleAccount, pickGoogleAccount } from '../api/google';
 import { setSessionExpiredHandler } from '../api/http';
 import {
   chooseShop,
+  joinTeamWithInvite,
+  loginAsMember,
   loginWithApple,
   loginWithEmail,
   loginWithGoogle,
@@ -35,6 +37,10 @@ interface AuthState {
   /** The splash `id` has faded away. */
   splashDone: (id: number) => void;
   signIn: (email: string, password: string) => Promise<void>;
+  /** Team member sign in with their own email + password. */
+  signInAsMember: (email: string, password: string) => Promise<void>;
+  /** Joins a team with the emailed invite code, choosing a password, and signs in. */
+  joinTeam: (email: string, code: string, password: string) => Promise<void>;
   /** Resolves without signing in if the user backs out of Google's chooser. */
   signInWithGoogle: () => Promise<void>;
   /** iPhone only. Resolves without signing in if the user closes Apple's sheet. */
@@ -136,6 +142,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       splashDone: id => setSplash(s => (s?.id === id ? null : s)),
       signIn: async (email, password) => {
         await signedIn(await loginWithEmail(email, password, startHome));
+      },
+      signInAsMember: async (email, password) => {
+        await signedIn(await loginAsMember(email, password, startHome));
+      },
+      joinTeam: async (email, code, password) => {
+        await signedIn(await joinTeamWithInvite(email, code, password, startHome));
       },
       signInWithGoogle: async () => {
         const idToken = await pickGoogleAccount();

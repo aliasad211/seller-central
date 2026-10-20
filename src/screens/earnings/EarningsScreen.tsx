@@ -1,8 +1,9 @@
-import { Receipt } from 'lucide-react-native';
+import { Receipt, Wallet } from 'lucide-react-native';
 import { ChevronForward } from '../../components/Chevrons';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { getEarnings } from '../../api';
+import { getPayoutSummary } from '../../api/payouts';
 import {
   AppText,
   BarChart,
@@ -10,6 +11,7 @@ import {
   Divider,
   EmptyState,
   Header,
+  IconCircle,
   InfoRow,
   Screen,
   SectionHeader,
@@ -38,9 +40,34 @@ export function EarningsScreen({ navigation }: RootScreenProps<'Earnings'>) {
     () => (shopId ? getEarnings(shopId, period) : Promise.reject(new Error(t('No shop on this account.')))),
     [shopId, period],
   );
+  // What's in the owner's Fazl wallet to withdraw; the card opens Withdraw.
+  const payouts = useLoad(getPayoutSummary);
 
   return (
-    <Screen header={<Header title={t('Earnings')} />} onRefresh={refresh} refreshing={refreshing}>
+    <Screen
+      header={<Header title={t('Earnings')} />}
+      onRefresh={() => {
+        refresh();
+        payouts.refresh();
+      }}
+      refreshing={refreshing}
+    >
+      <Card onPress={() => navigation.navigate('Payouts')} style={styles.wallet}>
+        <IconCircle icon={Wallet} tone="primary" size={40} />
+        <View style={styles.flex}>
+          <AppText variant="caption" color={colors.textMuted}>
+            {t('Available to withdraw')}
+          </AppText>
+          <AppText variant="subheading">
+            {payouts.data ? formatRs(payouts.data.withdrawable) : '—'}
+          </AppText>
+        </View>
+        <AppText variant="label" color={colors.primary}>
+          {t('Withdraw')}
+        </AppText>
+        <ChevronForward size={18} color={colors.primary} />
+      </Card>
+
       <Segmented
         options={[
           { key: 'daily', label: t('Daily') },
@@ -119,6 +146,7 @@ export function EarningsScreen({ navigation }: RootScreenProps<'Earnings'>) {
 
 const styles = themedStyles(() => StyleSheet.create({
   flex: { flex: 1 },
+  wallet: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
   hero: {
     backgroundColor: colors.primary,
     borderRadius: radius.lg,
