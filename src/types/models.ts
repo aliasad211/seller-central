@@ -29,6 +29,11 @@ export interface Seller {
   email: string;
   /** The account's phone number on Fazl, when it has one. */
   phone?: string;
+  address?: string;
+  location?: { type: 'Point'; coordinates: [number, number] };
+  roles?: string[];
+  /** An owner finishes their shared Fazl account before opening shop tools. */
+  needsProfileCompletion?: boolean;
   /** Every shop this account owns on Fazl. */
   shops: Shop[];
   /** The one Seller Central is managing; null until one is chosen (or none exist). */

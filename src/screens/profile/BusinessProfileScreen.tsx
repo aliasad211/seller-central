@@ -1,16 +1,15 @@
 import { Camera, Info, Store } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { ShopCategory, UploadFile } from '../../api/shopContent';
-import { shopTypeCategories, updateShopProfile } from '../../api/shopSetup';
+import { UploadFile } from '../../api/shopContent';
+import { updateShopProfile } from '../../api/shopSetup';
 import { AppText, Button, Header, Screen, StateView, TextField } from '../../components';
 import { RootScreenProps } from '../../navigation/types';
 import { useAuth } from '../../state/AuthContext';
 import { colors, radius, spacing, themedStyles } from '../../theme';
 import { Shop } from '../../types/models';
 import { t } from '../../i18n';
-import { CategoryPickerModal } from '../products/CategoryPickerModal';
 import { asUpload, PickerField } from '../shop/CreateShopScreen';
 
 type Field = keyof Pick<
@@ -23,28 +22,22 @@ const REQUIRED: Field[] = ['name', 'address', 'area', 'city', 'contact'];
 /**
  * The shop as customers see it on Fazl — one profile for both apps. Saving
  * changes it on Fazl (the Fazl app and website show it straight away); its
- * place on the map stays as it is.
+ * place on the map stays as it is, and so does its category — the one it was
+ * created with, which the owner can't change.
  */
 export function BusinessProfileScreen({ navigation }: RootScreenProps<'BusinessProfile'>) {
   const { seller, reloadShops } = useAuth();
   // The logged-in seller's shop, as loaded from Fazl at login.
   const [shop, setShop] = useState<Shop | null>(seller?.shop ?? null);
-  // Photos and a category the seller picked here, sent only when changed.
+  // Photos the seller picked here, sent only when changed.
   const [logo, setLogo] = useState<UploadFile | null>(null);
   const [banner, setBanner] = useState<UploadFile | null>(null);
-  const [category, setCategory] = useState<ShopCategory | null>(null);
-  const [categories, setCategories] = useState<ShopCategory[]>([]);
-  const [pickingCategory, setPickingCategory] = useState(false);
   const [missing, setMissing] = useState<Field[]>([]);
   const [saving, setSaving] = useState(false);
   // Delivery charge: what the owner charges customers for door-to-door delivery.
   const [deliveryCharge, setDeliveryCharge] = useState<string>(
     String(seller?.shop?.deliveryCharge ?? 0),
   );
-
-  useEffect(() => {
-    shopTypeCategories().then(setCategories).catch(() => setCategories([]));
-  }, []);
 
   if (!shop) {
     return (
@@ -87,12 +80,11 @@ export function BusinessProfileScreen({ navigation }: RootScreenProps<'BusinessP
         city: shop.city.trim(),
         contact: shop.contact.trim(),
         openingHours: shop.openingHours.trim(),
-        categoryId: category?.id,
         logo: logo ?? undefined,
         banner: banner ?? undefined,
         deliveryCharge: Math.round(Number(deliveryCharge) || 0),
       });
-      // The shop as Fazl now has it (new photo links, category name), so the
+      // The shop as Fazl now has it (new photo links), so the
       // headers and this screen show the saved profile.
       await reloadShops();
       Alert.alert(t('Saved'), t('Your shop page on Fazl now shows these details.'));
@@ -136,12 +128,11 @@ export function BusinessProfileScreen({ navigation }: RootScreenProps<'BusinessP
       </Pressable>
 
       <TextField label={t('Shop name')} value={shop.name} onChangeText={set('name')} error={err('name')} maxLength={80} />
-      <PickerField
-        label={t('Category')}
-        value={category?.name ?? shop.category}
-        placeholder={t('Choose category')}
-        onPress={categories.length ? () => setPickingCategory(true) : undefined}
-      />
+      {/* Shown, not chosen: the category stays the one the shop was created with. */}
+      <PickerField label={t('Category')} value={shop.category} placeholder={t('Category')} />
+      <AppText variant="caption" color={colors.textMuted} style={styles.locked}>
+        {t("A shop's category can't be changed after it's created.")}
+      </AppText>
       <TextField
         label={t('Description')}
         value={shop.description}
@@ -183,13 +174,6 @@ export function BusinessProfileScreen({ navigation }: RootScreenProps<'BusinessP
         </AppText>
       </View>
 
-      <CategoryPickerModal
-        visible={pickingCategory}
-        categories={categories}
-        selectedId={category?.id ?? shop.subcategoryId ?? shop.categoryId ?? ''}
-        onClose={() => setPickingCategory(false)}
-        onSelect={c => setCategory(c)}
-      />
     </Screen>
   );
 }
@@ -232,4 +216,5 @@ const styles = themedStyles(() => StyleSheet.create({
   logoCamera: { right: -2, bottom: -2, width: 24, height: 24 },
   row: { flexDirection: 'row', gap: spacing.md },
   note: { flexDirection: 'row', gap: spacing.sm },
+  locked: { marginTop: -spacing.md, marginBottom: spacing.lg },
 }));

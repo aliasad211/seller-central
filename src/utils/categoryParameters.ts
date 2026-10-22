@@ -37,6 +37,9 @@ export interface FormParameter {
   valuesByParent?: Record<string, string[]>;
   valueKeysByParent?: Record<string, string[]>;
   activeParentKey?: string;
+  /** A retail listing's "Condition", its second-hand values left out (see
+   *  newOnly): never typed in either. */
+  newOnlyCondition?: boolean;
 }
 
 interface Entry {
@@ -47,6 +50,7 @@ interface Entry {
   valuesByParent: Record<string, string[]> | null;
   valueKeysByParent: Record<string, string[]> | null;
   settings: Pick<FormParameter, 'isOptional' | 'allowCustomValue' | 'allowMultiple'>;
+  newOnlyCondition?: boolean;
 }
 
 function readEntry(raw: unknown): Entry {
@@ -81,9 +85,51 @@ function parentIndexes(entries: Entry[], indexOf: Map<string, number>): Set<numb
   return parents;
 }
 
-function entriesOf(category: CategoryWithParameters | null | undefined): Entry[] {
+/**
+ * A retail listing is new (`newOnly`): of a category's "Condition", the
+ * second-hand values (Used, Like New, Refurbished, Good…) are never offered.
+ * The others stay (New, Sealed, Genuine, Aftermarket, Made to Order…), as does
+ * a "Condition" that isn't about wear at all (an animal's: Healthy, Trained…).
+ * A classified listing (posted from the Fazl app, edited here) keeps them all.
+ */
+const SECOND_HAND = new Set([
+  'used',
+  'like new',
+  'refurbished',
+  'good',
+  'fair',
+  'second hand',
+  'second-hand',
+  'pre-owned',
+  'open box',
+]);
+
+export const isConditionParameter = (name: string): boolean => /^\s*condition\s*$/i.test(name);
+
+const isSecondHand = (value: string) => SECOND_HAND.has(value.trim().toLowerCase());
+
+/** A "Condition" entry with its second-hand values left out (their keys too). */
+function newOnly(e: Entry): Entry {
+  if (!isConditionParameter(e.name)) return e;
+  const kept = e.values.map((value, i) => ({ value, i })).filter(({ value }) => !isSecondHand(value));
+  if (kept.length === 0 || kept.length === e.values.length) return e;
+  return {
+    ...e,
+    values: kept.map(k => k.value),
+    valueKeys: e.valueKeys ? kept.map(k => e.valueKeys![k.i]) : null,
+    newOnlyCondition: true,
+  };
+}
+
+/** The value a retail listing is given without asking: a "Condition" left with one choice (New). */
+const onlyChoice = (e: Entry): string | undefined =>
+  e.newOnlyCondition && e.values.length === 1 ? e.values[0] : undefined;
+
+function entriesOf(category: CategoryWithParameters | null | undefined, newOnlyListing = false): Entry[] {
   const list = category?.parameters?.en ?? [];
-  return Array.isArray(list) ? list.map(readEntry).filter(e => e.name) : [];
+  if (!Array.isArray(list)) return [];
+  const entries = list.map(readEntry).filter(e => e.name);
+  return newOnlyListing ? entries.map(newOnly) : entries;
 }
 
 function optionsForParent(entry: Entry, parent: Entry | undefined, parentValue: string | undefined) {
@@ -101,19 +147,26 @@ const extras = (e: Entry) => ({
   ...(e.valueKeysByParent ? { valueKeysByParent: e.valueKeysByParent } : {}),
 });
 
-/** A new listing's details from its category: every field empty, dependents locked. */
-export function buildParametersFromCategory(category: CategoryWithParameters): FormParameter[] {
-  const entries = entriesOf(category);
+/** A new listing's details from its category: every field empty (but a
+ *  retail listing's Condition with one choice left, which is chosen),
+ *  dependents locked. */
+export function buildParametersFromCategory(
+  category: CategoryWithParameters,
+  { newOnly: newOnlyListing = false }: { newOnly?: boolean } = {},
+): FormParameter[] {
+  const entries = entriesOf(category, newOnlyListing);
   const indexOf = new Map(entries.map((e, i) => [e.name, i]));
   const parents = parentIndexes(entries, indexOf);
   return entries.map((e, i) => {
     const dependsOnIndex = e.dependsOn ? indexOf.get(e.dependsOn) : undefined;
+    const given = onlyChoice(e);
     return {
       id: `cat-${category.id}-${i}`,
       name: e.name,
-      variants: [],
+      variants: given ? [given] : [],
       availableValues: dependsOnIndex !== undefined ? [] : e.values,
       fromCategory: true,
+      ...(e.newOnlyCondition ? { newOnlyCondition: true } : {}),
       ...(parents.has(i) ? { hasDependents: true } : {}),
       ...(dependsOnIndex !== undefined ? { dependsOnIndex } : {}),
       ...extras(e),
@@ -125,8 +178,9 @@ export function buildParametersFromCategory(category: CategoryWithParameters): F
 export function hydrateParametersFromSaved(
   saved: { name: string; values: string[] }[],
   category: CategoryWithParameters | null | undefined,
+  { newOnly: newOnlyListing = false }: { newOnly?: boolean } = {},
 ): FormParameter[] {
-  const entries = entriesOf(category);
+  const entries = entriesOf(category, newOnlyListing);
   if (!entries.length) {
     return saved.map((p, i) => ({
       id: `param-${i}`,
@@ -142,7 +196,14 @@ export function hydrateParametersFromSaved(
   const chosen = new Map<number, string | undefined>();
 
   const results: FormParameter[] = entries.map((e, i) => {
-    const values = savedByName.get(e.name.toLowerCase())?.values ?? [];
+    let values = savedByName.get(e.name.toLowerCase())?.values ?? [];
+    // A retail listing saved as second-hand before: not any more (see
+    // newOnly); with one choice left, that one.
+    if (e.newOnlyCondition) {
+      values = values.filter(v => !isSecondHand(v));
+      const given = onlyChoice(e);
+      if (!values.length && given) values = [given];
+    }
     // Every saved value where admin allows several (and nothing depends on this one), else the one.
     const selected = e.settings.allowMultiple && !parents.has(i) ? values : values.slice(0, 1);
     chosen.set(i, selected[0]);
@@ -164,6 +225,7 @@ export function hydrateParametersFromSaved(
       variants: selected,
       availableValues: missing.length ? [...available, ...missing] : available,
       fromCategory: true,
+      ...(e.newOnlyCondition ? { newOnlyCondition: true } : {}),
       ...(parents.has(i) ? { hasDependents: true } : {}),
       ...(dependsOnIndex !== undefined ? { dependsOnIndex } : {}),
       ...extras(e),
@@ -234,6 +296,8 @@ export function allowsMultipleValues(p: FormParameter | null | undefined): boole
  */
 export function canAddCustomValue(p: FormParameter | null | undefined): boolean {
   if (!p) return false;
+  // A retail listing's condition is one of the new ones offered, never one typed in ("Used").
+  if (p.newOnlyCondition && p.availableValues.length > 0) return false;
   if (!p.fromCategory || p.allowCustomValue) return true;
   return p.dependsOnIndex === undefined && p.availableValues.length === 0;
 }

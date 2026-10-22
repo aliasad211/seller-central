@@ -5,6 +5,8 @@ import { CampaignDetailScreen } from '../screens/ads/CampaignDetailScreen';
 import { CampaignFormScreen } from '../screens/ads/CampaignFormScreen';
 import { ChooseShopScreen, SelectShopScreen } from '../screens/auth/ChooseShopScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
+import { SignupScreen } from '../screens/auth/SignupScreen';
+import { CompleteProfileScreen } from '../screens/auth/CompleteProfileScreen';
 import { NoShopScreen } from '../screens/auth/NoShopScreen';
 import { LocalDeliveryScreen } from '../screens/delivery/LocalDeliveryScreen';
 import { EarningsScreen } from '../screens/earnings/EarningsScreen';
@@ -49,7 +51,12 @@ export function RootNavigator() {
       }}
     >
       {!seller ? (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+        </>
+      ) : !seller.member && seller.needsProfileCompletion ? (
+        <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       ) : seller.shops.length === 0 ? (
         // Creating the first shop moves on to Home by itself (the shop is chosen).
         <>

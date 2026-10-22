@@ -15,6 +15,8 @@ export type TabParamList = {
 
 export type RootStackParamList = {
   Login: undefined;
+  Signup: undefined;
+  CompleteProfile: undefined;
   NoShop: undefined;
   /** Right after login, when the account has several shops and none is chosen. */
   SelectShop: undefined;

@@ -18,8 +18,9 @@ import { useAuth } from '../../state/AuthContext';
 import { colors, fonts, spacing, themedStyles } from '../../theme';
 import { LANGUAGE_NAMES } from '../../utils/chooseLanguage';
 import { isUrdu, setLanguage, t } from '../../i18n';
+import { RootScreenProps } from '../../navigation/types';
 
-export function LoginScreen() {
+export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   const { signIn, signInAsMember, joinTeam, signInWithGoogle, signInWithApple } = useAuth();
   const [mode, setMode] = useState<'owner' | 'member'>('owner');
   // A team member joining with the code from their invite email, choosing a password.
@@ -73,8 +74,7 @@ export function LoginScreen() {
     setErrors({});
     setLoading('google');
     try {
-      // Only an email already registered on Fazl gets in; the backend says
-      // so otherwise and that message is shown here.
+      // Continue with the shared Fazl account, creating it when necessary.
       await signInWithGoogle();
     } catch (e) {
       setErrors({ form: e instanceof Error ? e.message : t('Google sign-in failed') });
@@ -83,8 +83,7 @@ export function LoginScreen() {
     setLoading(null);
   };
 
-  // Sign in with Apple (iPhone): only an Apple ID already on a Fazl account
-  // gets in, as with Google; the backend's message is shown otherwise.
+  // Apple sign-in keeps its existing-account policy; Google also supports signup.
   const apple = async () => {
     if (loading) return;
     setErrors({});
@@ -285,6 +284,9 @@ export function LoginScreen() {
 
       {mode === 'owner' ? (
         <>
+          <Pressable accessibilityRole="button" disabled={loading !== null} style={styles.joinSwitch} onPress={() => navigation.navigate('Signup')}>
+            <AppText style={styles.forgotText}>{t('New to Fazl? Create an account')}</AppText>
+          </Pressable>
           <View style={styles.divider}>
             <View style={styles.line} />
             <AppText color={colors.textMuted}>{t('or')}</AppText>

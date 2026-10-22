@@ -2,6 +2,46 @@
 // ./index.ts). Wording follows the Fazl app's own Urdu where the text is the
 // same (Native-fazl-app src/localization/translations/ur.js).
 const ur: Record<string, string> = {
+  // Shared Fazl account signup and profile completion.
+  'Create your Fazl account': 'اپنا فضل اکاؤنٹ بنائیں',
+  'One account for Fazl App and Seller Central.': 'فضل ایپ اور سیلر سینٹرل کے لیے ایک ہی اکاؤنٹ۔',
+  'New to Fazl? Create an account': 'فضل پر نئے ہیں؟ اکاؤنٹ بنائیں',
+  'Create account': 'اکاؤنٹ بنائیں',
+  'Already have an account? Log in': 'پہلے سے اکاؤنٹ ہے؟ لاگ اِن کریں',
+  'Continue with email': 'ای میل کے ساتھ آگے بڑھیں',
+  'Verification code': 'تصدیقی کوڈ',
+  'Enter the 6-digit verification code': 'چھ ہندسوں کا تصدیقی کوڈ درج کریں',
+  'Enter the code sent to {email}': '{email} پر بھیجا گیا کوڈ درج کریں',
+  'Verify email': 'ای میل کی تصدیق کریں',
+  'Resend code': 'کوڈ دوبارہ بھیجیں',
+  'Resend code in {seconds}s': '{seconds} سیکنڈ بعد کوڈ دوبارہ بھیجیں',
+  'Change email': 'ای میل تبدیل کریں',
+  'Full name': 'پورا نام',
+  'Mobile number (Pakistan)': 'موبائل نمبر (پاکستان)',
+  'Enter your full name': 'اپنا پورا نام درج کریں',
+  'Enter a valid Pakistani mobile number': 'درست پاکستانی موبائل نمبر درج کریں',
+  'Choose city': 'شہر منتخب کریں',
+  'Choose area': 'علاقہ منتخب کریں',
+  'Search cities': 'شہر تلاش کریں',
+  'Search areas': 'علاقہ تلاش کریں',
+  'Choose a city with a location': 'مقام کے ساتھ شہر منتخب کریں',
+  'Choose your area': 'اپنا علاقہ منتخب کریں',
+  'Account type': 'اکاؤنٹ کی قسم',
+  'Personal account': 'ذاتی اکاؤنٹ',
+  'Service provider': 'خدمات فراہم کنندہ',
+  'Business owner': 'کاروبار کے مالک',
+  'Choose your account type': 'اپنے اکاؤنٹ کی قسم منتخب کریں',
+  'Referral code (optional)': 'ریفرل کوڈ (اختیاری)',
+  'Could not load cities': 'شہر لوڈ نہیں ہو سکے',
+  'Please try again': 'براہ کرم دوبارہ کوشش کریں',
+  'Complete your profile': 'اپنی پروفائل مکمل کریں',
+  'Add your missing details to finish your Fazl account and continue to your shop.': 'اپنا فضل اکاؤنٹ مکمل کرنے اور دکان کی طرف بڑھنے کے لیے باقی معلومات درج کریں۔',
+  'Save and continue': 'محفوظ کریں اور آگے بڑھیں',
+  'Use another account': 'دوسرا اکاؤنٹ استعمال کریں',
+  'Your account is created. Log in to continue.': 'آپ کا اکاؤنٹ بن گیا ہے۔ آگے بڑھنے کے لیے لاگ اِن کریں۔',
+  'Could not load your Fazl account': 'آپ کا فضل اکاؤنٹ لوڈ نہیں ہو سکا',
+  'Your profile is incomplete. Please check your details.': 'آپ کی پروفائل نامکمل ہے۔ اپنی معلومات چیک کریں۔',
+  'Team members cannot change the shop owner account': 'ٹیم ممبرز دکان کے مالک کا اکاؤنٹ تبدیل نہیں کر سکتے',
   // Words and labels
   Account: 'اکاؤنٹ',
   Accepted: 'قبول شدہ',
@@ -702,7 +742,7 @@ const ur: Record<string, string> = {
   'Click rate': 'کلک ریٹ',
   'spent brought': 'خرچ کرنے پر',
   'in sales.': 'کی سیل ہوئی۔',
-  'by Fazl': 'فضل کی طرف سے',
+  'by Leads Cooperate LLC': 'Leads Cooperate LLC کی طرف سے',
 
   // Notifications and settings
   'New orders, and likes and offers on your listings, show up here.': 'نئے آرڈرز، اور آپ کی لسٹنگز پر لائکس اور آفرز یہاں نظر آتی ہیں۔',
@@ -991,6 +1031,25 @@ const ur: Record<string, string> = {
   'Card payment': 'کارڈ سے ادائیگی',
   "Enter your card's details on the card page to pay {amount}. This moves on once JazzCash confirms it.":
     '{amount} ادا کرنے کے لیے کارڈ والے صفحے پر اپنے کارڈ کی تفصیلات درج کریں۔ جاز کیش کی تصدیق کے بعد یہ آگے بڑھ جائے گا۔',
+  // Editing a shop: its category stays the one it was created with.
+  "A shop's category can't be changed after it's created.": 'دکان بننے کے بعد اس کی کیٹیگری تبدیل نہیں کی جا سکتی۔',
 };
+
+Object.assign(ur, {
+  'Create a business owner account for Fazl App and Seller Central.': 'فضل ایپ اور سیلر سینٹرل کے لیے کاروباری مالک کا اکاؤنٹ بنائیں۔',
+  'Use at least 8 characters, a special character, and no spaces': 'کم از کم 8 حروف اور ایک خاص علامت استعمال کریں، خالی جگہ نہ دیں۔',
+  'Create a password': 'پاس ورڈ بنائیں',
+  'Continue with phone': 'فون نمبر سے جاری رکھیں',
+  'Verify phone': 'فون نمبر کی تصدیق کریں',
+  'Change phone': 'فون نمبر تبدیل کریں',
+  'Invalid or expired verification code': 'تصدیقی کوڈ غلط ہے یا اس کی مدت ختم ہو چکی ہے',
+  'Add photo (optional)': 'تصویر شامل کریں (اختیاری)',
+  'Your account is ready': 'آپ کا اکاؤنٹ تیار ہے',
+  'Verify your email': 'اپنی ای میل کی تصدیق کریں',
+  'Verify your phone': 'اپنے فون نمبر کی تصدیق کریں',
+  'Your details': 'آپ کی تفصیلات',
+  Continue: 'جاری رکھیں',
+  "Didn't get the code?": 'کوڈ نہیں ملا؟',
+});
 
 export default ur;

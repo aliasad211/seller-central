@@ -6,6 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Seller, Shop } from '../types/models';
 import { isUrdu, t } from '../i18n';
 import { api, ApiError, currentTokens, loadTokens, saveTokens } from './http';
+import { AccountDetails, needsAccountDetails } from '../utils/accountProfile';
+import { accountForm } from './account';
 
 const SELLER_KEY = 'sellerCentral.seller';
 /** Per account, so a shared phone remembers each seller's own choice. */
@@ -25,6 +27,9 @@ interface BackendUser {
   name?: string | null;
   email: string;
   phone?: string | null;
+  address?: string | null;
+  location?: Seller['location'];
+  roles?: string[];
   refreshToken?: string;
 }
 
@@ -80,9 +85,9 @@ function toShop(s: BackendShop, ownerName: string): Shop {
  * the app asks which one to manage.
  */
 /** Who is logged in, without their shops. */
-type Profile = Pick<Seller, 'id' | 'name' | 'email' | 'phone'>;
+type Profile = Pick<Seller, 'id' | 'name' | 'email' | 'phone' | 'address' | 'location' | 'roles' | 'needsProfileCompletion'>;
 
-const profileFrom = (s: Seller): Profile => ({ id: s.id, name: s.name, email: s.email, phone: s.phone });
+const profileFrom = (s: Seller): Profile => ({ id: s.id, name: s.name, email: s.email, phone: s.phone, address: s.address, location: s.location, roles: s.roles, needsProfileCompletion: s.needsProfileCompletion });
 
 /** A shop Fazl's admin has suspended can't be chosen, so it isn't listed. */
 const selectable = (shops: Shop[]) => shops.filter(s => !s.disabled);
@@ -125,10 +130,39 @@ export async function refreshShops(seller: Seller): Promise<Seller> {
 
 const profileOf = (u: BackendUser): Profile => ({
   id: (u.id ?? u.sub) as string,
-  name: u.name || u.email,
+  name: u.name?.trim() || '',
   email: u.email,
   phone: u.phone || undefined,
+  address: u.address || undefined,
+  location: u.location,
+  roles: u.roles ?? [],
+  needsProfileCompletion: needsAccountDetails(u),
 });
+
+async function ownerFor(profile: Profile, onLastShop?: OnLastShop): Promise<Seller> {
+  if (!profile.needsProfileCompletion) return sellerFor(profile, onLastShop);
+  const pending: Seller = { ...profile, shops: [], shop: null };
+  await AsyncStorage.setItem(SELLER_KEY, JSON.stringify(pending));
+  return pending;
+}
+
+async function ownerSignedIn(user: BackendUser, onLastShop?: OnLastShop): Promise<Seller> {
+  const profile = profileOf(user);
+  if (!profile.id) throw new Error(t('Could not load your Fazl account'));
+  // Persist the right identity first, so a profile fetch interrupted by a lost
+  // connection resumes against this account, never the previous saved owner.
+  await AsyncStorage.setItem(SELLER_KEY, JSON.stringify({ ...profile, shops: [], shop: null }));
+  const fresh = await api<BackendUser>(`/users/detail/${profile.id}`);
+  return ownerFor(profileOf(fresh), onLastShop);
+}
+
+export async function completeOwnerProfile(seller: Seller, details: AccountDetails, onLastShop?: OnLastShop): Promise<Seller> {
+  if (seller.member) throw new Error(t('Team members cannot change the shop owner account'));
+  await api(`/users/${seller.id}`, { method: 'PUT', form: accountForm(details) });
+  const fresh = profileOf(await api<BackendUser>(`/users/detail/${seller.id}`));
+  if (fresh.needsProfileCompletion) throw new Error(t('Your profile is incomplete. Please check your details.'));
+  return ownerFor(fresh, onLastShop);
+}
 
 export async function loginWithEmail(
   email: string,
@@ -141,27 +175,26 @@ export async function loginWithEmail(
     auth: false,
   });
   await saveTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
-  return sellerFor(profileOf(data.user), onLastShop);
+  return ownerSignedIn(data.user, onLastShop);
 }
 
 /**
- * Google sign-in for an existing Fazl account only: `allowSignUp: false` makes
- * the backend refuse an email that isn't registered (404) instead of
- * creating a new account for it.
+ * Google continues into the shared Fazl account, creating it when necessary.
+ * A new owner completes their profile before any shop tools are opened.
  */
 export async function loginWithGoogle(idToken: string, onLastShop?: OnLastShop): Promise<Seller> {
   const data = await api<{ accessToken: string; user: BackendUser }>('/auth/google/verify/token', {
     method: 'POST',
-    body: { idToken, allowSignUp: false },
+    body: { idToken, allowSignUp: true },
     auth: false,
   });
   await saveTokens({ accessToken: data.accessToken, refreshToken: data.user.refreshToken });
-  return sellerFor(profileOf(data.user), onLastShop);
+  return ownerSignedIn(data.user, onLastShop);
 }
 
 /**
- * Sign in with Apple (iPhone) for an existing Fazl account only, as for
- * Google: `allowSignUp: false` makes the backend refuse an Apple ID that has
+ * Sign in with Apple (iPhone) for an existing Fazl account only:
+ * `allowSignUp: false` makes the backend refuse an Apple ID that has
  * no Fazl account (404) instead of creating one.
  */
 export async function loginWithApple(
@@ -175,7 +208,7 @@ export async function loginWithApple(
     auth: false,
   });
   await saveTokens({ accessToken: data.accessToken, refreshToken: data.user.refreshToken });
-  return sellerFor(profileOf(data.user), onLastShop);
+  return ownerSignedIn(data.user, onLastShop);
 }
 
 /**
@@ -197,8 +230,12 @@ export async function restoreSession(onLastShop?: OnLastShop): Promise<Seller | 
     return null;
   }
   try {
-    const seller = await sellerFor(profileFrom(saved), onLastShop);
-    return saved.member ? { ...seller, member: saved.member } : seller;
+    if (saved.member) {
+      const seller = await sellerFor(profileFrom(saved), onLastShop);
+      return { ...seller, member: saved.member };
+    }
+    const fresh = await api<BackendUser>(`/users/detail/${saved.id}`);
+    return ownerFor(profileOf(fresh), onLastShop);
   } catch (e) {
     if (e instanceof ApiError && e.status === 0) {
       // Offline: the saved copy (one saved by an older version has no list,

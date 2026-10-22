@@ -150,7 +150,8 @@ export function ProductFormScreen({ route, navigation }: RootScreenProps<'Produc
         setDescription(p.description);
         setCategoryId(p.categoryId ?? '');
         detailsFor.current = p.categoryId ?? '';
-        setParameters(hydrateParametersFromSaved(p.options, details));
+        // A retail listing is new: no second-hand Condition (a classified one keeps them).
+        setParameters(hydrateParametersFromSaved(p.options, details, { newOnly: p.listingType === 'retail' }));
         setPrice(p.price ? String(p.price) : '');
         setListingType(p.listingType ?? 'classified');
         setAvailable(p.available);
@@ -181,7 +182,9 @@ export function ProductFormScreen({ route, navigation }: RootScreenProps<'Produc
     setDetailsLoading(true);
     categoryDetails(c.id)
       .then(details => {
-        if (detailsFor.current === c.id) setParameters(buildParametersFromCategory(details));
+        if (detailsFor.current === c.id) {
+          setParameters(buildParametersFromCategory(details, { newOnly: listingType === 'retail' }));
+        }
       })
       .catch(e => {
         if (detailsFor.current !== c.id) return;

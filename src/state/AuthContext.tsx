@@ -5,6 +5,7 @@ import { forgetGoogleAccount, pickGoogleAccount } from '../api/google';
 import { setSessionExpiredHandler } from '../api/http';
 import {
   chooseShop,
+  completeOwnerProfile,
   joinTeamWithInvite,
   loginAsMember,
   loginWithApple,
@@ -17,6 +18,7 @@ import {
 } from '../api/session';
 import { Seller, Shop } from '../types/models';
 import { stopPush } from '../push';
+import { AccountDetails } from '../utils/accountProfile';
 
 /**
  * The splash over the app: at start and on logging out (not after logging
@@ -45,6 +47,7 @@ interface AuthState {
   signInWithGoogle: () => Promise<void>;
   /** iPhone only. Resolves without signing in if the user closes Apple's sheet. */
   signInWithApple: () => Promise<void>;
+  completeProfile: (details: AccountDetails) => Promise<void>;
   signOut: () => Promise<void>;
   /** Makes this one of the account's shops the one being managed. */
   selectShop: (shopId: string) => Promise<void>;
@@ -166,6 +169,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const identity = await pickAppleIdentity();
         if (!identity) return;
         await signedIn(await loginWithApple(identity.identityToken, identity.fullName, startHome));
+      },
+      completeProfile: async details => {
+        if (!seller) throw new Error('Log in first');
+        await signedIn(await completeOwnerProfile(seller, details, startHome));
       },
       signOut: async () => {
         // The splash first, over the logging out; the login screen when it fades.

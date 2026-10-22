@@ -3,6 +3,7 @@ export * from './Badge';
 export * from './BarChart';
 export * from './Button';
 export * from './Card';
+export * from './CodeBoxes';
 export * from './ComingSoon';
 export * from './DateField';
 export * from './DoodleButton';

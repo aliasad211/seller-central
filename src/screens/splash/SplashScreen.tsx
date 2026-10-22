@@ -128,7 +128,7 @@ export function SplashScreen({
           style={[styles.footer, { bottom: insets.bottom + spacing.xl }]}
           allowFontScaling={false}
         >
-          {t('by Fazl')}
+          {t('by Leads Cooperate LLC')}
         </AppText>
       )}
     </Animated.View>
