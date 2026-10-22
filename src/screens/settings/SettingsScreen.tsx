@@ -1,7 +1,9 @@
-import { CircleHelp, LogOut, ShieldCheck } from 'lucide-react-native';
-import React from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { CircleHelp, FileText, LogOut, ShieldCheck, Trash2 } from 'lucide-react-native';
+import React, { useState } from 'react';
 import { Alert, Linking, StyleSheet, View } from 'react-native';
 import { getSettings, saveSettings } from '../../api';
+import { deleteAccount } from '../../api/account';
 import {
   AppText,
   Card,
@@ -24,9 +26,42 @@ import { SellerSettings } from '../../types/models';
 import { language, t } from '../../i18n';
 
 export function SettingsScreen() {
+  const navigation = useNavigation();
   const { seller, signOut } = useAuth();
   const appearance = useAppearance();
   const { data, setData, error, reload } = useLoad(() => getSettings(seller?.id), [seller?.id]);
+  const [deleting, setDeleting] = useState(false);
+
+  // Only the owner's own account; a team member's session can't delete it.
+  const canDeleteAccount = !!seller && !seller.member;
+
+  const confirmDeleteAccount = () => {
+    if (!seller || deleting) return;
+    Alert.alert(
+      t('Delete your account?'),
+      t(
+        'This deletes your Fazl account — the same one you use in the Fazl app. Your shops and listings are taken off Fazl and you are logged out. This action cannot be undone.',
+      ),
+      [
+        { text: t('Cancel'), style: 'cancel' },
+        {
+          text: t('Delete account'),
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteAccount(seller.id);
+            } catch (e) {
+              setDeleting(false);
+              Alert.alert(t("Couldn't delete your account"), e instanceof Error ? e.message : '');
+              return;
+            }
+            await signOut();
+          },
+        },
+      ],
+    );
+  };
 
   if (!data) {
     return (
@@ -145,7 +180,17 @@ export function SettingsScreen() {
           divider
           onPress={() => Linking.openURL('https://fazlapp.com')}
         />
-        <ListRow icon={ShieldCheck} title={t('Privacy policy')} onPress={() => Linking.openURL('https://fazlapp.com')} />
+        <ListRow
+          icon={ShieldCheck}
+          title={t('Privacy policy')}
+          divider
+          onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}
+        />
+        <ListRow
+          icon={FileText}
+          title={t('Terms & conditions')}
+          onPress={() => navigation.navigate('Legal', { doc: 'terms' })}
+        />
       </Card>
 
       <Card style={styles.logout}>
@@ -153,8 +198,18 @@ export function SettingsScreen() {
           icon={LogOut}
           tone="danger"
           title={t('Log out')}
+          divider={canDeleteAccount}
           onPress={() => confirmLogout(signOut)}
         />
+        {canDeleteAccount ? (
+          <ListRow
+            icon={Trash2}
+            tone="danger"
+            title={deleting ? t('Deleting…') : t('Delete account')}
+            subtitle={t('Your Fazl account, shops and listings')}
+            onPress={deleting ? undefined : confirmDeleteAccount}
+          />
+        ) : null}
       </Card>
     </Screen>
   );

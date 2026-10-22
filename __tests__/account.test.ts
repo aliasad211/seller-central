@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, loadTokens, saveTokens } from '../src/api/http';
-import { accountForm, createFazlAccount, sendSignupCode, verifySignupCode, sendPhoneSignupCode, verifyPhoneSignupCode } from '../src/api/account';
+import { accountForm, createFazlAccount, deleteAccount, sendSignupCode, verifySignupCode, sendPhoneSignupCode, verifyPhoneSignupCode } from '../src/api/account';
 import { completeOwnerProfile, loginAsMember, loginWithEmail, loginWithGoogle, restoreSession } from '../src/api/session';
 import { AccountDetails, accountDetailsErrors, pakistanPhone } from '../src/utils/accountProfile';
 
@@ -28,6 +28,11 @@ beforeEach(() => {
     if (url === '/shops/userShops') return [];
     return undefined;
   });
+});
+
+test('deleting the account uses the Fazl app’s endpoint, signed in', async () => {
+  await deleteAccount('u1');
+  expect(request).toHaveBeenCalledWith('/users/u1/deactivate', { method: 'DELETE' });
 });
 
 test('email signup uses the same public Fazl verification and account endpoints', async () => {

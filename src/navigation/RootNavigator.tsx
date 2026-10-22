@@ -28,6 +28,7 @@ import { BusinessProfileScreen } from '../screens/profile/BusinessProfileScreen'
 import { CreateShopScreen } from '../screens/shop/CreateShopScreen';
 import { AddCoinsScreen } from '../screens/wallet/AddCoinsScreen';
 import { ReturnsScreen } from '../screens/returns/ReturnsScreen';
+import { LegalScreen } from '../screens/settings/LegalScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { ShippingScreen } from '../screens/shipping/ShippingScreen';
 import { TeamMemberFormScreen } from '../screens/team/TeamMemberFormScreen';
@@ -103,6 +104,7 @@ export function RootNavigator() {
           <Stack.Screen name="BusinessProfile" component={BusinessProfileScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="Legal" component={LegalScreen} />
           <Stack.Screen name="Team" component={TeamScreen} />
           <Stack.Screen name="TeamMemberForm" component={TeamMemberFormScreen} />
         </>

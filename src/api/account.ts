@@ -41,6 +41,15 @@ export function validSignupPassword(password: string): boolean {
   return password.length >= 8 && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) && !password.includes(' ');
 }
 
+/**
+ * Deletes the owner's Fazl account — the one shared with the Fazl app — the
+ * way the Fazl app's Settings does: the account, its shops and its listings are
+ * taken off Fazl. A team member's session can't (the backend refuses it).
+ */
+export async function deleteAccount(userId: string): Promise<void> {
+  await api(`/users/${encodeURIComponent(userId)}/deactivate`, { method: 'DELETE' });
+}
+
 /** Same account and endpoint as the Fazl app, followed by a normal app login. */
 export async function createFazlAccount(email: string, password: string, details: AccountDetails): Promise<void> {
   const form = accountForm(details);

@@ -60,6 +60,8 @@ export type RootStackParamList = {
   BusinessProfile: undefined;
   Notifications: undefined;
   Settings: undefined;
+  /** Fazl's privacy policy or terms and conditions, read in the app (Settings). */
+  Legal: { doc: 'privacy' | 'terms' };
   /** The owner's team (owner only). */
   Team: undefined;
   /** Inviting someone (no member; `role` to start from), or changing an existing member. */

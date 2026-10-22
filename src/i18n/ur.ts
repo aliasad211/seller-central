@@ -760,6 +760,16 @@ const ur: Record<string, string> = {
     'ڈارک موڈ میں فضل کا ٹیل رنگ برقرار رہتا ہے اور تحریر گہرے پس منظر پر ہلکے سرمئی رنگ میں دکھتی ہے۔',
   'Help & support': 'مدد اور سپورٹ',
   'Privacy policy': 'رازداری کی پالیسی',
+  'Terms & conditions': 'شرائط و ضوابط',
+  Contents: 'فہرست',
+  'This document is in English.': 'یہ دستاویز انگریزی میں ہے۔',
+  'Delete account': 'اکاؤنٹ حذف کریں',
+  'Delete your account?': 'اپنا اکاؤنٹ حذف کریں؟',
+  'This deletes your Fazl account — the same one you use in the Fazl app. Your shops and listings are taken off Fazl and you are logged out. This action cannot be undone.':
+    'اس سے آپ کا فضل اکاؤنٹ حذف ہو جائے گا — وہی جو آپ فضل ایپ میں استعمال کرتے ہیں۔ آپ کی دکانیں اور لسٹنگز فضل سے ہٹا دی جائیں گی اور آپ لاگ آؤٹ ہو جائیں گے۔ یہ عمل واپس نہیں کیا جا سکتا۔',
+  'Your Fazl account, shops and listings': 'آپ کا فضل اکاؤنٹ، دکانیں اور لسٹنگز',
+  'Deleting…': 'حذف کیا جا رہا ہے…',
+  "Couldn't delete your account": 'آپ کا اکاؤنٹ حذف نہیں ہو سکا',
 
   // Advertisement management
   'Ad delivery is not enabled yet': 'اشتہارات دکھانے کی سہولت ابھی شروع نہیں ہوئی',
