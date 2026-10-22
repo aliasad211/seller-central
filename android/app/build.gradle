@@ -88,8 +88,8 @@ android {
         applicationId "com.fazlapp.sellercenter"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "1.0"
+        versionCode 4
+        versionName "1.0.0"
         // Maps SDK key for react-native-maps (the store pin on Create shop): the
         // same MAPS_API_KEY as the Fazl app, from ~/.gradle/gradle.properties,
         // never committed. Without it the map shows grey.
