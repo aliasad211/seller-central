@@ -19,9 +19,10 @@ import { colors, fonts, spacing, themedStyles } from '../../theme';
 import { LANGUAGE_NAMES } from '../../utils/chooseLanguage';
 import { isUrdu, setLanguage, t } from '../../i18n';
 import { RootScreenProps } from '../../navigation/types';
+import { LoginCodeStep } from './LoginCodeStep';
 
 export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
-  const { signIn, signInAsMember, joinTeam, signInWithGoogle, signInWithApple } = useAuth();
+  const { pendingLogin, signIn, signInAsMember, joinTeam, signInWithGoogle, signInWithApple } = useAuth();
   const [mode, setMode] = useState<'owner' | 'member'>('owner');
   // A team member joining with the code from their invite email, choosing a password.
   const [joining, setJoining] = useState(false);
@@ -62,7 +63,9 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       } else if (mode === 'member') {
         await signInAsMember(email.trim(), password);
       } else {
+        // A code is emailed; the code step takes over from here.
         await signIn(email.trim(), password);
+        setLoading(null);
       }
     } catch (e) {
       setErrors({ form: e instanceof Error ? e.message : t('Could not log in') });
@@ -95,6 +98,9 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
     }
     setLoading(null);
   };
+
+  // The owner's email and password were right: the emailed code finishes it.
+  if (pendingLogin) return <LoginCodeStep />;
 
   return (
     <Screen background={colors.surface} contentStyle={styles.content}>

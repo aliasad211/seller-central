@@ -38,9 +38,9 @@ export function SettingsScreen() {
   const confirmDeleteAccount = () => {
     if (!seller || deleting) return;
     Alert.alert(
-      t('Delete your account?'),
+      t('Delete your Seller Central account?'),
       t(
-        'This deletes your Fazl account — the same one you use in the Fazl app. Your shops and listings are taken off Fazl and you are logged out. This action cannot be undone.',
+        'The listings and posts you added here are deleted, and so is a shop with nothing from the Fazl app in it. A shop with Fazl app listings stays, with those. Your team loses access and you are logged out. Your Fazl app account stays as it is. To sell here again, log in and verify your email with a code.',
       ),
       [
         { text: t('Cancel'), style: 'cancel' },
@@ -50,7 +50,7 @@ export function SettingsScreen() {
           onPress: async () => {
             setDeleting(true);
             try {
-              await deleteAccount(seller.id);
+              await deleteAccount();
             } catch (e) {
               setDeleting(false);
               Alert.alert(t("Couldn't delete your account"), e instanceof Error ? e.message : '');
@@ -205,8 +205,8 @@ export function SettingsScreen() {
           <ListRow
             icon={Trash2}
             tone="danger"
-            title={deleting ? t('Deleting…') : t('Delete account')}
-            subtitle={t('Your Fazl account, shops and listings')}
+            title={deleting ? t('Deleting…') : t('Delete Seller Central account')}
+            subtitle={t('Your listings and posts here. Your Fazl app account stays.')}
             onPress={deleting ? undefined : confirmDeleteAccount}
           />
         ) : null}

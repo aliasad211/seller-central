@@ -2,6 +2,12 @@
 // and finding their shops. Seller Central is for shop owners: an account
 // without a shop sees the "create your shop" screen, and one with several
 // picks which shop to manage (remembered, and switchable later).
+//
+// The account is the Fazl app's, but Seller Central signs in on its own
+// (/seller/session): a password login is finished with a code emailed to the
+// account every time, and its session, phones and closing are its own — the
+// Fazl app's login stays as it is, and so does this one when the Fazl app
+// account is deleted.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Seller, Shop } from '../types/models';
 import { isUrdu, t } from '../i18n';
@@ -164,51 +170,74 @@ export async function completeOwnerProfile(seller: Seller, details: AccountDetai
   return ownerFor(fresh, onLastShop);
 }
 
-export async function loginWithEmail(
-  email: string,
-  password: string,
-  onLastShop?: OnLastShop,
-): Promise<Seller> {
-  const data = await api<{ accessToken: string; refreshToken: string; user: BackendUser }>('/auth/login', {
+/** A Seller Central session as /seller/session starts it. */
+interface SellerSession {
+  accessToken: string;
+  refreshToken: string;
+  user: BackendUser;
+}
+
+async function sellerSessionStarted(data: SellerSession, onLastShop?: OnLastShop): Promise<Seller> {
+  await saveTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken, seller: true });
+  return ownerSignedIn(data.user, onLastShop);
+}
+
+/**
+ * A password login's first step: Fazl checks the email and password, then
+ * emails the account a 6-digit code to finish with (see loginWithCode).
+ * Nothing is signed in yet. Returns the address the code went to.
+ */
+export async function requestLoginCode(email: string, password: string): Promise<string> {
+  const data = await api<{ email?: string }>('/seller/session/login', {
     method: 'POST',
-    body: { email, password, loginContext: 'app' },
+    body: { email: email.trim(), password },
     auth: false,
   });
-  await saveTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
-  return ownerSignedIn(data.user, onLastShop);
+  return data?.email ?? email.trim();
+}
+
+/**
+ * The emailed code: opens Seller Central for the account — afresh, if the
+ * owner had closed it — and logs in.
+ */
+export async function loginWithCode(email: string, code: string, onLastShop?: OnLastShop): Promise<Seller> {
+  const data = await api<SellerSession>('/seller/session/verify', {
+    method: 'POST',
+    body: { email, code: code.trim() },
+    auth: false,
+  });
+  return sellerSessionStarted(data, onLastShop);
 }
 
 /**
  * Google continues into the shared Fazl account, creating it when necessary.
- * A new owner completes their profile before any shop tools are opened.
+ * Google has verified the email, so no code is needed. A new owner completes
+ * their profile before any shop tools are opened.
  */
 export async function loginWithGoogle(idToken: string, onLastShop?: OnLastShop): Promise<Seller> {
-  const data = await api<{ accessToken: string; user: BackendUser }>('/auth/google/verify/token', {
+  const data = await api<SellerSession>('/seller/session/google', {
     method: 'POST',
-    body: { idToken, allowSignUp: true },
+    body: { idToken },
     auth: false,
   });
-  await saveTokens({ accessToken: data.accessToken, refreshToken: data.user.refreshToken });
-  return ownerSignedIn(data.user, onLastShop);
+  return sellerSessionStarted(data, onLastShop);
 }
 
 /**
- * Sign in with Apple (iPhone) for an existing Fazl account only:
- * `allowSignUp: false` makes the backend refuse an Apple ID that has
- * no Fazl account (404) instead of creating one.
+ * Sign in with Apple (iPhone) for an existing Fazl account only: the backend
+ * refuses an Apple ID that has no Fazl account (404) instead of creating one.
  */
 export async function loginWithApple(
   identityToken: string,
   fullName: { givenName: string | null; familyName: string | null },
   onLastShop?: OnLastShop,
 ): Promise<Seller> {
-  const data = await api<{ accessToken: string; user: BackendUser }>('/auth/apple/verify/token', {
+  const data = await api<SellerSession>('/seller/session/apple', {
     method: 'POST',
-    body: { identityToken, fullName, allowSignUp: false },
+    body: { identityToken, fullName },
     auth: false,
   });
-  await saveTokens({ accessToken: data.accessToken, refreshToken: data.user.refreshToken });
-  return ownerSignedIn(data.user, onLastShop);
+  return sellerSessionStarted(data, onLastShop);
 }
 
 /**
@@ -217,7 +246,15 @@ export async function loginWithApple(
  * cleared.
  */
 export async function restoreSession(onLastShop?: OnLastShop): Promise<Seller | null> {
-  if (!(await loadTokens())) return null;
+  const tokens = await loadTokens();
+  if (!tokens) return null;
+  // An owner login from before Seller Central had its own, made through the
+  // Fazl app's: logged in again, with the emailed code. Only dropped here —
+  // ending it on Fazl would end the Fazl app's session too.
+  if (!tokens.isMember && !tokens.seller) {
+    await clearSession();
+    return null;
+  }
   let saved: Seller | null = null;
   try {
     const raw = await AsyncStorage.getItem(SELLER_KEY);
@@ -258,8 +295,9 @@ export async function logout(): Promise<void> {
         body: { token: tokens.refreshToken },
       }).catch(() => undefined);
     } else {
-      // Best effort: the session ends on this phone either way.
-      await api('/auth/logout', { method: 'POST', body: { token: tokens.refreshToken } }).catch(() => undefined);
+      // Best effort: the session ends on this phone either way. The Fazl
+      // app's own session stays.
+      await api('/seller/session/logout', { method: 'POST', body: { token: tokens.refreshToken } }).catch(() => undefined);
     }
   }
   await clearSession();

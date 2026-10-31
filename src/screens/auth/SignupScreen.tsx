@@ -12,6 +12,7 @@ import { isUrdu, setLanguage, t } from '../../i18n';
 import { LANGUAGE_NAMES } from '../../utils/chooseLanguage';
 import { AccountDetails, pakistanPhone } from '../../utils/accountProfile';
 import { AccountDetailsForm } from './AccountDetailsForm';
+import { LoginCodeStep } from './LoginCodeStep';
 
 type Stage = 'contact' | 'code' | 'password' | 'details';
 
@@ -21,7 +22,7 @@ type Stage = 'contact' | 'code' | 'password' | 'details';
  * details — or Google instead of all of it.
  */
 export function SignupScreen({ navigation }: RootScreenProps<'Signup'>) {
-  const { signIn, signInWithGoogle } = useAuth();
+  const { pendingLogin, signIn, signInWithGoogle } = useAuth();
   const [stage, setStage] = useState<Stage>('contact');
   const [method, setMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
@@ -112,6 +113,9 @@ export function SignupScreen({ navigation }: RootScreenProps<'Signup'>) {
         : stage === 'details'
           ? { icon: UserRound, title: t('Your details'), text: contact }
           : { icon: UserPlus, title: t('Create your Fazl account'), text: t('Create a business owner account for Fazl App and Seller Central.') };
+
+  // Created and logging in: Seller Central's emailed login code, as on Login.
+  if (pendingLogin) return <LoginCodeStep />;
 
   return (
     <Screen background={colors.surface} contentStyle={styles.content}>

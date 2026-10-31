@@ -1,8 +1,9 @@
 // Push notifications: the phone's Firebase token is registered with Fazl after
-// login (the same endpoint the Fazl app uses), so every notification Fazl
-// sends the seller — a new order for their shop above all — also arrives
-// here. Needs this app's google-services.json (see android/app/build.gradle);
-// without it everything here quietly does nothing.
+// login as a Seller Central phone, apart from the Fazl app's, so the seller's
+// selling notifications — a new order for their shop above all — arrive here,
+// and their buying, chats and broadcasts stay in the Fazl app. Needs this
+// app's google-services.json (see android/app/build.gradle); without it
+// everything here quietly does nothing.
 import { getApps } from '@react-native-firebase/app';
 import {
   AuthorizationStatus,
@@ -71,7 +72,7 @@ export async function stopPush(): Promise<void> {
   try {
     const messaging = getMessaging();
     const token = await getToken(messaging);
-    await api('/users/unregister-fcm-token', { method: 'POST', body: { token } });
+    await api('/seller/session/push-token/remove', { method: 'POST', body: { token } });
     await deleteToken(messaging);
   } catch {
     // The backend drops a dead token the next time it tries it.
@@ -80,7 +81,7 @@ export async function stopPush(): Promise<void> {
 
 async function register(token: string) {
   if (!token) return;
-  await api('/users/register-fcm-token', { method: 'POST', body: { token } });
+  await api('/seller/session/push-token', { method: 'POST', body: { token } });
 }
 
 /** A notification that arrives while the app is open (the phone shows the rest itself). */

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { preloadDashboard, preloadSavedDashboard, whenDashboardPreloaded } from '../api';
 import { pickAppleIdentity } from '../api/apple';
 import { forgetGoogleAccount, pickGoogleAccount } from '../api/google';
@@ -9,11 +9,12 @@ import {
   joinTeamWithInvite,
   loginAsMember,
   loginWithApple,
-  loginWithEmail,
+  loginWithCode,
   loginWithGoogle,
   logout,
   OnLastShop,
   refreshShops,
+  requestLoginCode,
   restoreSession,
 } from '../api/session';
 import { Seller, Shop } from '../types/models';
@@ -38,7 +39,16 @@ interface AuthState {
   splash: Splash | null;
   /** The splash `id` has faded away. */
   splashDone: (id: number) => void;
+  /** A password login waiting for the code emailed to `email`. */
+  pendingLogin: { email: string } | null;
+  /** Checks the email and password and emails a code; signs in at verifyLoginCode. */
   signIn: (email: string, password: string) => Promise<void>;
+  /** The emailed code: finishes the pending login. */
+  verifyLoginCode: (code: string) => Promise<void>;
+  /** Emails the pending login a new code. */
+  resendLoginCode: () => Promise<void>;
+  /** Gives up the pending login (back to the email and password). */
+  cancelLogin: () => void;
   /** Team member sign in with their own email + password. */
   signInAsMember: (email: string, password: string) => Promise<void>;
   /** Joins a team with the emailed invite code, choosing a password, and signs in. */
@@ -100,6 +110,9 @@ function deferred() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [seller, setSeller] = useState<Seller | null>(null);
   const [ready, setReady] = useState(false);
+  const [pendingLogin, setPendingLogin] = useState<{ email: string } | null>(null);
+  // Kept in memory only, to send a new code without asking for it again.
+  const pendingPassword = useRef('');
   // The start splash covers checking the saved login and loading Home.
   const [startup] = useState(deferred);
   const [splash, setSplash] = useState<Splash | null>(() => ({
@@ -138,14 +151,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSeller(next);
     };
 
+    const endPendingLogin = () => {
+      pendingPassword.current = '';
+      setPendingLogin(null);
+    };
+
     return {
       seller,
       ready,
       splash,
       splashDone: id => setSplash(s => (s?.id === id ? null : s)),
+      pendingLogin,
       signIn: async (email, password) => {
-        await signedIn(await loginWithEmail(email, password, startHome));
+        const sentTo = await requestLoginCode(email, password);
+        pendingPassword.current = password;
+        setPendingLogin({ email: sentTo });
       },
+      verifyLoginCode: async code => {
+        if (!pendingLogin) throw new Error('Log in first');
+        await signedIn(await loginWithCode(pendingLogin.email, code, startHome));
+        endPendingLogin();
+      },
+      resendLoginCode: async () => {
+        if (!pendingLogin) return;
+        await requestLoginCode(pendingLogin.email, pendingPassword.current);
+      },
+      cancelLogin: endPendingLogin,
       signInAsMember: async (email, password) => {
         await signedIn(await loginAsMember(email, password, startHome));
       },
@@ -215,7 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           s ? { ...s, shop, shops: s.shops.map(x => (x.id === shop.id ? shop : x)) } : s,
         ),
     };
-  }, [seller, ready, splash]);
+  }, [seller, ready, splash, pendingLogin]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

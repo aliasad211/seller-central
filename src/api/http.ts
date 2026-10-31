@@ -14,6 +14,12 @@ export interface Tokens {
   accessToken: string;
   refreshToken?: string;
   isMember?: boolean;
+  /**
+   * The owner's own Seller Central session (/seller/session), apart from the
+   * Fazl app's. A saved owner login without it is from before, made through
+   * the Fazl app's login; it isn't used (see restoreSession).
+   */
+  seller?: boolean;
 }
 
 export class ApiError extends Error {
@@ -133,7 +139,7 @@ function refreshOnce(): Promise<boolean> {
       try {
         const refreshPath = tokens?.isMember
           ? '/seller/members/session/refresh'
-          : '/auth/refreshToken';
+          : '/seller/session/refresh';
         const res = await send(refreshPath, {
           method: 'POST',
           body: { token: tokens?.refreshToken },
@@ -144,6 +150,7 @@ function refreshOnce(): Promise<boolean> {
           accessToken: data.accessToken,
           refreshToken: data.refreshToken ?? tokens?.refreshToken,
           isMember: tokens?.isMember,
+          seller: tokens?.seller,
         });
         return true;
       } catch {

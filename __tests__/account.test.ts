@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, loadTokens, saveTokens } from '../src/api/http';
 import { accountForm, createFazlAccount, deleteAccount, sendSignupCode, verifySignupCode, sendPhoneSignupCode, verifyPhoneSignupCode } from '../src/api/account';
-import { completeOwnerProfile, loginAsMember, loginWithEmail, loginWithGoogle, restoreSession } from '../src/api/session';
+import { completeOwnerProfile, loginAsMember, loginWithCode, loginWithGoogle, logout, requestLoginCode, restoreSession } from '../src/api/session';
 import { AccountDetails, accountDetailsErrors, pakistanPhone } from '../src/utils/accountProfile';
 
 jest.mock('../src/i18n', () => ({ language: 'en', isUrdu: false, t: (key: string) => key }));
@@ -23,16 +23,47 @@ beforeEach(() => {
   jest.clearAllMocks();
   (AsyncStorage.getMany as jest.Mock).mockResolvedValue({});
   request.mockImplementation(async (url: string) => {
-    if (url === '/auth/login' || url === '/auth/google/verify/token') return sessionReply;
+    if (url === '/seller/session/verify' || url === '/seller/session/google') return sessionReply;
     if (url === '/users/detail/u1') return completeUser;
     if (url === '/shops/userShops') return [];
     return undefined;
   });
 });
 
-test('deleting the account uses the Fazl app’s endpoint, signed in', async () => {
-  await deleteAccount('u1');
-  expect(request).toHaveBeenCalledWith('/users/u1/deactivate', { method: 'DELETE' });
+test('deleting closes the Seller Central account only, not the Fazl app’s', async () => {
+  await deleteAccount();
+  expect(request).toHaveBeenCalledWith('/seller/session/account', { method: 'DELETE' });
+  expect(request.mock.calls.some(([url]) => url.includes('/deactivate'))).toBe(false);
+});
+
+test('the password only gets a code emailed; the code logs in, in a session of its own', async () => {
+  request.mockResolvedValueOnce({ email: 'ali@example.com', expiresInSeconds: 600 });
+  await expect(requestLoginCode(' ali@example.com ', 'secret12')).resolves.toBe('ali@example.com');
+  expect(request).toHaveBeenLastCalledWith('/seller/session/login', { method: 'POST', body: { email: 'ali@example.com', password: 'secret12' }, auth: false });
+  expect(saveTokens).not.toHaveBeenCalled();
+
+  const seller = await loginWithCode('ali@example.com', ' 123456 ');
+  expect(request).toHaveBeenCalledWith('/seller/session/verify', { method: 'POST', body: { email: 'ali@example.com', code: '123456' }, auth: false });
+  expect(saveTokens).toHaveBeenCalledWith({ accessToken: 'access', refreshToken: 'refresh', seller: true });
+  expect(seller.id).toBe('u1');
+  // Never the Fazl app's login or session.
+  expect(request.mock.calls.some(([url]) => url.startsWith('/auth/'))).toBe(false);
+});
+
+test('logging out ends the Seller Central session, never the Fazl app’s', async () => {
+  const { currentTokens } = jest.requireMock('../src/api/http');
+  currentTokens.mockReturnValue({ accessToken: 'access', refreshToken: 'refresh', seller: true });
+  await logout();
+  expect(request).toHaveBeenCalledWith('/seller/session/logout', { method: 'POST', body: { token: 'refresh' } });
+  expect(request.mock.calls.some(([url]) => url === '/auth/logout')).toBe(false);
+});
+
+test('a saved owner login from before Seller Central had its own is dropped, without asking Fazl', async () => {
+  (loadTokens as jest.Mock).mockResolvedValue({ accessToken: 'access', refreshToken: 'refresh' });
+  (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify({ ...completeUser, shop: null, shops: [] }));
+  await expect(restoreSession()).resolves.toBeNull();
+  expect(saveTokens).toHaveBeenCalledWith(null);
+  expect(request).not.toHaveBeenCalled();
 });
 
 test('email signup uses the same public Fazl verification and account endpoints', async () => {
@@ -49,10 +80,10 @@ test('email signup uses the same public Fazl verification and account endpoints'
 });
 
 test('a new Google account waits for profile completion without loading or opening shops', async () => {
-  request.mockImplementation(async (url: string) => url === '/auth/google/verify/token' ? sessionReply : { id: 'u1', name: 'Ali', email: 'ali@example.com', roles: [], phone: null, location: { coordinates: [0, 0] } });
+  request.mockImplementation(async (url: string) => url === '/seller/session/google' ? sessionReply : { id: 'u1', name: 'Ali', email: 'ali@example.com', roles: [], phone: null, location: { coordinates: [0, 0] } });
   const seller = await loginWithGoogle('google-id-token');
-  expect(request).toHaveBeenCalledWith('/auth/google/verify/token', expect.objectContaining({ body: { idToken: 'google-id-token', allowSignUp: true }, auth: false }));
-  expect(saveTokens).toHaveBeenCalledWith({ accessToken: 'access', refreshToken: 'refresh' });
+  expect(request).toHaveBeenCalledWith('/seller/session/google', expect.objectContaining({ body: { idToken: 'google-id-token' }, auth: false }));
+  expect(saveTokens).toHaveBeenCalledWith({ accessToken: 'access', refreshToken: 'refresh', seller: true });
   expect(seller).toMatchObject({ id: 'u1', needsProfileCompletion: true, shop: null, shops: [] });
   expect(request.mock.calls.some(([url]) => url === '/shops/userShops')).toBe(false);
 });
@@ -71,8 +102,8 @@ test('phone signup uses real OTP endpoints and refuses unsuccessful verification
 });
 
 test('existing complete accounts use fresh profile data and open their shop', async () => {
-  request.mockImplementation(async (url: string) => url === '/auth/login' ? sessionReply : url === '/users/detail/u1' ? completeUser : [{ id: 's1', title: 'Ali Store' }]);
-  const seller = await loginWithEmail('ali@example.com', 'secret12');
+  request.mockImplementation(async (url: string) => url === '/seller/session/verify' ? sessionReply : url === '/users/detail/u1' ? completeUser : [{ id: 's1', title: 'Ali Store' }]);
+  const seller = await loginWithCode('ali@example.com', '123456');
   expect(seller.needsProfileCompletion).toBe(false);
   expect(seller.shop?.id).toBe('s1');
 });
@@ -93,7 +124,7 @@ test('a failed profile save leaves the completion gate in place and does not ope
 });
 
 test('restarting rechecks an incomplete shared account before showing shop tools', async () => {
-  (loadTokens as jest.Mock).mockResolvedValue({ accessToken: 'access' });
+  (loadTokens as jest.Mock).mockResolvedValue({ accessToken: 'access', seller: true });
   (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify({ ...completeUser, shop: null, shops: [], needsProfileCompletion: true }));
   request.mockResolvedValueOnce({ ...completeUser, phone: null });
   const seller = await restoreSession();

@@ -764,12 +764,21 @@ const ur: Record<string, string> = {
   Contents: 'فہرست',
   'This document is in English.': 'یہ دستاویز انگریزی میں ہے۔',
   'Delete account': 'اکاؤنٹ حذف کریں',
-  'Delete your account?': 'اپنا اکاؤنٹ حذف کریں؟',
-  'This deletes your Fazl account — the same one you use in the Fazl app. Your shops and listings are taken off Fazl and you are logged out. This action cannot be undone.':
-    'اس سے آپ کا فضل اکاؤنٹ حذف ہو جائے گا — وہی جو آپ فضل ایپ میں استعمال کرتے ہیں۔ آپ کی دکانیں اور لسٹنگز فضل سے ہٹا دی جائیں گی اور آپ لاگ آؤٹ ہو جائیں گے۔ یہ عمل واپس نہیں کیا جا سکتا۔',
-  'Your Fazl account, shops and listings': 'آپ کا فضل اکاؤنٹ، دکانیں اور لسٹنگز',
+  'Delete Seller Central account': 'سیلر سینٹرل اکاؤنٹ حذف کریں',
+  'Delete your Seller Central account?': 'اپنا سیلر سینٹرل اکاؤنٹ حذف کریں؟',
+  'The listings and posts you added here are deleted, and so is a shop with nothing from the Fazl app in it. A shop with Fazl app listings stays, with those. Your team loses access and you are logged out. Your Fazl app account stays as it is. To sell here again, log in and verify your email with a code.':
+    'یہاں شامل کی گئی آپ کی لسٹنگز اور پوسٹس حذف ہو جائیں گی، اور وہ دکان بھی جس میں فضل ایپ کی کوئی لسٹنگ نہیں۔ جس دکان میں فضل ایپ کی لسٹنگز ہیں وہ ان کے ساتھ رہے گی۔ آپ کی ٹیم کی رسائی ختم ہو جائے گی اور آپ لاگ آؤٹ ہو جائیں گے۔ آپ کا فضل ایپ اکاؤنٹ ویسا ہی رہے گا۔ یہاں دوبارہ فروخت کے لیے لاگ ان کریں اور کوڈ سے اپنی ای میل کی تصدیق کریں۔',
+  'Your listings and posts here. Your Fazl app account stays.': 'یہاں کی آپ کی لسٹنگز اور پوسٹس۔ آپ کا فضل ایپ اکاؤنٹ رہے گا۔',
   'Deleting…': 'حذف کیا جا رہا ہے…',
   "Couldn't delete your account": 'آپ کا اکاؤنٹ حذف نہیں ہو سکا',
+
+  // The code emailed on every password login
+  'Check your email': 'اپنی ای میل دیکھیں',
+  'Enter the 6-digit code we sent to {email} to open Seller Central.':
+    '{email} پر بھیجا گیا 6 ہندسوں کا کوڈ درج کریں تاکہ سیلر سینٹرل کھل سکے۔',
+  'Verify and log in': 'تصدیق کریں اور لاگ ان کریں',
+  'We ask for a code every time you log in with your password, to keep your shop safe.':
+    'آپ کی دکان کی حفاظت کے لیے ہر بار پاس ورڈ سے لاگ ان کرنے پر کوڈ مانگا جاتا ہے۔',
 
   // Advertisement management
   'Ad delivery is not enabled yet': 'اشتہارات دکھانے کی سہولت ابھی شروع نہیں ہوئی',

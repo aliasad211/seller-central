@@ -121,6 +121,16 @@ test('Google on signup continues through the shared social account flow', async 
   expect(createFazlAccount).not.toHaveBeenCalled();
 });
 
+test('once created, logging in waits for the code emailed to the account', async () => {
+  const verifyLoginCode = jest.fn();
+  (useAuth as jest.Mock).mockReturnValue({ signIn, signInWithGoogle, pendingLogin: { email: 'ali@example.com' }, verifyLoginCode, resendLoginCode: jest.fn(), cancelLogin: jest.fn() });
+  await act(async () => tree.update(<SignupScreen navigation={{ goBack: jest.fn() } as any} route={{} as any} />));
+  expect(tree.root.findAllByProps({ testID: 'Continue with email' })).toHaveLength(0);
+  await input('Verification code', '654321');
+  await press('Verify and log in');
+  expect(verifyLoginCode).toHaveBeenCalledWith('654321');
+});
+
 test('retries login after account creation without ever creating the account twice', async () => {
   signIn.mockRejectedValueOnce(new Error('Connection interrupted'));
   await verifiedDetails(); await press('submit-details');
