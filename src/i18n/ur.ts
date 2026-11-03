@@ -1069,6 +1069,15 @@ Object.assign(ur, {
   'Your details': 'آپ کی تفصیلات',
   Continue: 'جاری رکھیں',
   "Didn't get the code?": 'کوڈ نہیں ملا؟',
+
+  // Another shop's fee through the App Store (iPhone)
+  'App Store': 'ایپ اسٹور',
+  'Pay with your Apple Account': 'اپنے ایپل اکاؤنٹ سے ادائیگی کریں',
+  'Finish paying with the App Store': 'ایپ اسٹور پر ادائیگی مکمل کریں',
+  'Once Apple confirms it, your shop is sent to Fazl for approval.':
+    'ایپل کی تصدیق کے بعد آپ کی دکان منظوری کے لیے فضل کو بھیج دی جائے گی۔',
+  "Your App Store payment went through, but Fazl couldn't add it yet. Tap Pay again; you won't be charged twice.":
+    'ایپ اسٹور پر آپ کی ادائیگی ہو گئی، لیکن فضل اسے ابھی شامل نہیں کر سکا۔ دوبارہ ادائیگی دبائیں، آپ سے دوبارہ رقم نہیں کٹے گی۔',
 });
 
 export default ur;

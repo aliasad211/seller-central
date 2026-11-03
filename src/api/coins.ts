@@ -88,3 +88,16 @@ export async function buyCoins(input: {
 export async function getCoinPurchase(id: string): Promise<CoinPurchase> {
   return toPurchase(await api<BackendPurchase>(`/wallet/me/coins/purchases/${id}`));
 }
+
+/**
+ * Another shop's fee bought on iPhone with the App Store: sends Apple's signed
+ * transaction, and Fazl puts the fee into the wallet once Apple's signature
+ * checks out. Sending the same one again returns the same purchase.
+ */
+export async function buyWithAppStore(signedTransaction: string): Promise<CoinPurchase> {
+  const res = await api<{ purchase: BackendPurchase }>('/wallet/me/coins/apple', {
+    method: 'POST',
+    body: { signedTransaction },
+  });
+  return toPurchase(res.purchase);
+}

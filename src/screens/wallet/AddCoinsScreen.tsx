@@ -1,9 +1,10 @@
-import { Check, CreditCard, Smartphone, Wallet, X } from 'lucide-react-native';
+import { Check, CreditCard, ShoppingBag, Smartphone, Wallet, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { buyCoins, CoinMethod, CoinOptions, CoinPurchase, getCoinOptions, getCoinPurchase } from '../../api/coins';
+import { buyExtraShop, extraShopPrice, PAYS_WITH_APP_STORE } from '../../appStore';
 import { getNewShopTerms, NewShopTerms } from '../../api/shopRequests';
 import {
   AppText,
@@ -35,11 +36,13 @@ export const TOP_UP_METHODS: { method: CoinMethod; label: string; hint: string }
   { method: 'card', label: t('Debit or credit card'), hint: t("Enter your card's details on JazzCash's secure page") },
 ];
 
-/** A gateway, or — for another shop's fee only — the Fazl wallet. */
-type PayMethod = CoinMethod | 'wallet';
+/** A gateway, or — for another shop's fee only — the Fazl wallet, or on
+ *  iPhone the App Store (in place of the gateways, as Apple requires). */
+type PayMethod = CoinMethod | 'wallet' | 'apple';
 
-/** form → phone (approving on the phone) | card (paying on the card page) | pending (waiting for the gateway) */
-type Stage = 'form' | 'phone' | 'card' | 'pending';
+/** form → phone (approving on the phone) | card (paying on the card page) |
+ *  appStore (the App Store's sheet) | pending (waiting for the gateway) */
+type Stage = 'form' | 'phone' | 'card' | 'appStore' | 'pending';
 
 /**
  * Paying Fazl. Two uses:
@@ -53,6 +56,9 @@ type Stage = 'form' | 'phone' | 'card' | 'pending';
  *   approval (`fromWalletAt` / `paidFor`). A gateway payment goes into the
  *   wallet and the fee is taken from it there, so the books stay one ledger.
  *
+ * On iPhone a shop's fee is paid from the wallet or bought through the App
+ * Store (see appStore.ts) instead of a gateway.
+ *
  * A mobile account is charged straight away and approved on the owner's
  * phone while this screen waits; a card opens JazzCash's card page inside the
  * app, where the card's details are entered, and the purchase is checked as
@@ -62,7 +68,10 @@ export function AddCoinsScreen({ navigation, route }: RootScreenProps<'AddCoins'
   const insets = useSafeAreaInsets();
   const needed = route.params?.needed;
   const shopFee = route.params?.shopFee;
+  const appStore = PAYS_WITH_APP_STORE && !!shopFee;
   const [options, setOptions] = useState<CoinOptions | null>(null);
+  // The App Store's price for another shop, as it will charge (iPhone).
+  const [appStorePrice, setAppStorePrice] = useState<string | null>(null);
   // Paying a shop's fee: the owner's wallet, to offer it.
   const [terms, setTerms] = useState<NewShopTerms | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -99,7 +108,8 @@ export function AddCoinsScreen({ navigation, route }: RootScreenProps<'AddCoins'
         const walletCovers =
           !!shopFee && !!shopTerms && shopTerms.walletEnabled && !shopTerms.walletFrozen && shopTerms.balance >= shopFee;
         setMethod(m => {
-          if (m === 'wallet' ? walletCovers : m && o.available[m]) return m;
+          if (appStore) return m === 'wallet' && walletCovers ? m : walletCovers ? 'wallet' : 'apple';
+          if (m === 'wallet' ? walletCovers : m && m !== 'apple' && o.available[m]) return m;
           if (walletCovers) return 'wallet';
           return TOP_UP_METHODS.find(x => o.available[x.method])?.method ?? null;
         });
@@ -107,7 +117,12 @@ export function AddCoinsScreen({ navigation, route }: RootScreenProps<'AddCoins'
         setAmount(a => (a && Number(a) < o.min ? String(o.min) : a));
       })
       .catch(e => setLoadError(e instanceof Error ? e.message : t('Something went wrong')));
-  }, [shopFee]);
+    if (appStore) {
+      extraShopPrice()
+        .then(setAppStorePrice)
+        .catch(() => setAppStorePrice(null));
+    }
+  }, [shopFee, appStore]);
 
   useEffect(loadOptions, [loadOptions]);
 
@@ -187,6 +202,30 @@ export function AddCoinsScreen({ navigation, route }: RootScreenProps<'AddCoins'
   const charge = method === 'wallet' && shopFee ? shopFee : value;
 
   const pay = async () => {
+    if (method === 'apple') {
+      setError(null);
+      setStage('appStore');
+      try {
+        const bought = await buyExtraShop();
+        if (!mounted.current) return;
+        if (!bought) {
+          setStage('form');
+          return;
+        }
+        activeId.current = bought.id;
+        if (finish(bought)) return;
+        // Apple has charged, but Fazl hasn't credited it yet: the App Store
+        // keeps the purchase, and paying again credits it instead.
+        activeId.current = null;
+        setStage('form');
+        setError(t("Your App Store payment went through, but Fazl couldn't add it yet. Tap Pay again; you won't be charged twice."));
+      } catch (e) {
+        if (!mounted.current) return;
+        setStage('form');
+        setError(e instanceof Error ? e.message : t('Something went wrong'));
+      }
+      return;
+    }
     if (method === 'wallet') {
       if (!walletCovers) return;
       // The fee comes out of the wallet as Create shop sends the shop.
@@ -238,7 +277,9 @@ export function AddCoinsScreen({ navigation, route }: RootScreenProps<'AddCoins'
               ? t('Approve the payment on your phone')
               : stage === 'card'
                 ? t('Finish paying on the card page')
-                : t('Waiting for the payment to be confirmed')}
+                : stage === 'appStore'
+                  ? t('Finish paying with the App Store')
+                  : t('Waiting for the payment to be confirmed')}
           </AppText>
           <AppText color={colors.textMuted} align="center">
             {stage === 'phone'
@@ -251,7 +292,9 @@ export function AddCoinsScreen({ navigation, route }: RootScreenProps<'AddCoins'
                 ? t("Enter your card's details on the card page to pay {amount}. This moves on once JazzCash confirms it.", {
                     amount: formatRs(value),
                   })
-                : t('This can take a minute. You can leave this screen; the money is added either way.')}
+                : stage === 'appStore'
+                  ? t('Once Apple confirms it, your shop is sent to Fazl for approval.')
+                  : t('This can take a minute. You can leave this screen; the money is added either way.')}
           </AppText>
           {stage === 'card' ? (
             <>
@@ -338,13 +381,23 @@ export function AddCoinsScreen({ navigation, route }: RootScreenProps<'AddCoins'
           },
         ]
       : []),
-    ...TOP_UP_METHODS.map(m => ({
-      key: m.method,
-      label: m.label,
-      icon: m.method === 'card' ? CreditCard : Smartphone,
-      available: options.enabled && options.available[m.method],
-      hint: options.enabled && options.available[m.method] ? m.hint : t('Not available yet'),
-    })),
+    ...(appStore
+      ? [
+          {
+            key: 'apple' as const,
+            label: t('App Store'),
+            icon: ShoppingBag,
+            available: options.enabled,
+            hint: options.enabled ? t('Pay with your Apple Account') : t('Not available right now'),
+          },
+        ]
+      : TOP_UP_METHODS.map(m => ({
+          key: m.method,
+          label: m.label,
+          icon: m.method === 'card' ? CreditCard : Smartphone,
+          available: options.enabled && options.available[m.method],
+          hint: options.enabled && options.available[m.method] ? m.hint : t('Not available yet'),
+        }))),
   ];
 
   return (
@@ -355,12 +408,19 @@ export function AddCoinsScreen({ navigation, route }: RootScreenProps<'AddCoins'
           title={
             method === 'wallet'
               ? t('Pay {amount} from wallet', { amount: formatRs(charge) })
-              : charge > 0
+              : method === 'apple'
+                ? appStorePrice
+                  ? t('Pay {amount}', { amount: appStorePrice })
+                  : t('Pay')
+                : charge > 0
                 ? t('Pay {amount}', { amount: formatRs(charge) })
                 : t('Pay')
           }
           flex
-          disabled={!method || (method === 'wallet' ? !walletCovers : !options.enabled || !value)}
+          disabled={
+            !method ||
+            (method === 'wallet' ? !walletCovers : method === 'apple' ? !options.enabled : !options.enabled || !value)
+          }
           onPress={pay}
         />
       }
@@ -369,13 +429,15 @@ export function AddCoinsScreen({ navigation, route }: RootScreenProps<'AddCoins'
         // What's being paid, and what happens then.
         <Card style={styles.summary}>
           <AppText color={colors.textMuted}>{t('Amount to pay')}</AppText>
-          <AppText variant="title">{formatRs(charge || shopFee)}</AppText>
+          <AppText variant="title">
+            {method === 'apple' && appStorePrice ? appStorePrice : formatRs(method === 'apple' ? shopFee : charge || shopFee)}
+          </AppText>
           <AppText variant="caption" color={colors.textMuted}>
             {t(
               "Your new shop's fee. Once it's paid, your shop is sent to Fazl for approval. If Fazl doesn't approve it, the money comes back to your Fazl wallet.",
             )}
           </AppText>
-          {method !== 'wallet' && value > shopFee ? (
+          {method !== 'wallet' && method !== 'apple' && value > shopFee ? (
             <AppText variant="caption" color={colors.textMuted}>
               {t('The smallest payment is {min}. What is left after the fee stays in your Fazl wallet.', {
                 min: formatRs(options.min),

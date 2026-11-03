@@ -54,7 +54,8 @@ export const asUpload = (a: Asset): UploadFile => ({
  * The account's first shop is free and opens at once. Any further one costs
  * the fee Fazl sets and waits for Fazl's approval; the shop list shows it
  * meanwhile. Its "Pay & send for approval" opens the payment page (AddCoins
- * with `shopFee`): the Fazl wallet, JazzCash, Easypaisa or a card. Once it's
+ * with `shopFee`): the Fazl wallet, JazzCash, Easypaisa or a card — on iPhone
+ * the wallet or the App Store. Once it's
  * paid, that page comes back here (`fromWalletAt` / `paidFor`) and the shop
  * is sent for approval, the fee taken from the wallet.
  */
