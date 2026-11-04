@@ -12,11 +12,13 @@ import {
 } from 'react-native';
 import { AppleButton } from '@invertase/react-native-apple-authentication';
 import { isAppleSignInAvailable } from '../../api/apple';
+import { looksLikePhone } from '../../api/session';
 import GoogleIcon from '../../assets/icons/google.png';
 import { AppText, DoodleButton, IconCircle, OutlinedField, Screen } from '../../components';
 import { useAuth } from '../../state/AuthContext';
 import { colors, fonts, spacing, themedStyles } from '../../theme';
 import { LANGUAGE_NAMES } from '../../utils/chooseLanguage';
+import { pakistanPhone } from '../../utils/accountProfile';
 import { isUrdu, setLanguage, t } from '../../i18n';
 import { RootScreenProps } from '../../navigation/types';
 import { LoginCodeStep } from './LoginCodeStep';
@@ -45,7 +47,12 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
 
   const submit = async () => {
     const next: typeof errors = {};
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = t('Enter a valid email');
+    const validEmail = /^\S+@\S+\.\S+$/.test(email.trim());
+    // A shop owner logs in with their email or phone number; a team member with their email.
+    const validPhone = mode === 'owner' && looksLikePhone(email) && /^\+923\d{9}$/.test(pakistanPhone(email));
+    if (!validEmail && !validPhone) {
+      next.email = mode === 'owner' ? t('Enter a valid email or phone number') : t('Enter a valid email');
+    }
     if (isJoining) {
       if (!/^\d{6}$/.test(code.trim())) next.code = t('Enter the 6-digit code from the invite email');
       if (password.length < 6) next.password = t('Use at least 6 characters');
@@ -63,7 +70,7 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       } else if (mode === 'member') {
         await signInAsMember(email.trim(), password);
       } else {
-        // A code is emailed; the code step takes over from here.
+        // A code is sent (by email, or by SMS for a phone number); the code step takes over from here.
         await signIn(email.trim(), password);
         setLoading(null);
       }
@@ -175,15 +182,15 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       </View>
 
       <OutlinedField
-        label={t('Email Address')}
+        label={mode === 'owner' ? t('Email or phone number') : t('Email Address')}
         value={email}
         onChangeText={text => {
           setEmail(text);
           setErrors(e => ({ ...e, email: undefined, form: undefined }));
         }}
-        placeholder={t('you@example.com')}
-        keyboardType="email-address"
-        autoComplete="email"
+        placeholder={mode === 'owner' ? t('you@example.com or 03001234567') : t('you@example.com')}
+        keyboardType={mode === 'owner' ? 'default' : 'email-address'}
+        autoComplete={mode === 'owner' ? 'username' : 'email'}
         returnKeyType="next"
         submitBehavior="submit"
         onSubmitEditing={() => (isJoining ? codeRef : passwordRef).current?.focus()}
@@ -291,7 +298,7 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       {mode === 'owner' ? (
         <>
           <Pressable accessibilityRole="button" disabled={loading !== null} style={styles.joinSwitch} onPress={() => navigation.navigate('Signup')}>
-            <AppText style={styles.forgotText}>{t('New to Fazl? Create an account')}</AppText>
+            <AppText style={styles.forgotText}>{t('New to Seller Central? Create your account')}</AppText>
           </Pressable>
           <View style={styles.divider}>
             <View style={styles.line} />

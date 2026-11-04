@@ -11,11 +11,13 @@ import {
   loginWithApple,
   loginWithCode,
   loginWithGoogle,
+  LoginCodeSent,
   logout,
   OnLastShop,
   refreshShops,
   requestLoginCode,
   restoreSession,
+  signUpWithPass,
 } from '../api/session';
 import { Seller, Shop } from '../types/models';
 import { stopPush } from '../push';
@@ -39,10 +41,16 @@ interface AuthState {
   splash: Splash | null;
   /** The splash `id` has faded away. */
   splashDone: (id: number) => void;
-  /** A password login waiting for the code emailed to `email`. */
-  pendingLogin: { email: string } | null;
-  /** Checks the email and password and emails a code; signs in at verifyLoginCode. */
-  signIn: (email: string, password: string) => Promise<void>;
+  /**
+   * A password login waiting for its code: `to` is where it went (by email,
+   * or by SMS for a phone login), `identifier` the email or phone number
+   * typed, which the code is checked with and a new code is sent the same way.
+   */
+  pendingLogin: (LoginCodeSent & { identifier: string }) | null;
+  /** Checks the email (or phone number) and password and sends a code; signs in at verifyLoginCode. */
+  signIn: (emailOrPhone: string, password: string) => Promise<void>;
+  /** Signup's end: logs the just-created account straight in with its signup pass (no code). */
+  signUp: (signupPass: string, password: string) => Promise<void>;
   /** The emailed code: finishes the pending login. */
   verifyLoginCode: (code: string) => Promise<void>;
   /** Emails the pending login a new code. */
@@ -55,8 +63,11 @@ interface AuthState {
   joinTeam: (email: string, code: string, password: string) => Promise<void>;
   /** Resolves without signing in if the user backs out of Google's chooser. */
   signInWithGoogle: () => Promise<void>;
-  /** iPhone only. Resolves without signing in if the user closes Apple's sheet. */
-  signInWithApple: () => Promise<void>;
+  /**
+   * iPhone only. Resolves without signing in if the user closes Apple's
+   * sheet. `signup`: from Signup, creates the account if new.
+   */
+  signInWithApple: (signup?: boolean) => Promise<void>;
   completeProfile: (details: AccountDetails) => Promise<void>;
   signOut: () => Promise<void>;
   /** Makes this one of the account's shops the one being managed. */
@@ -110,7 +121,7 @@ function deferred() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [seller, setSeller] = useState<Seller | null>(null);
   const [ready, setReady] = useState(false);
-  const [pendingLogin, setPendingLogin] = useState<{ email: string } | null>(null);
+  const [pendingLogin, setPendingLogin] = useState<AuthState['pendingLogin']>(null);
   // Kept in memory only, to send a new code without asking for it again.
   const pendingPassword = useRef('');
   // The start splash covers checking the saved login and loading Home.
@@ -162,19 +173,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       splash,
       splashDone: id => setSplash(s => (s?.id === id ? null : s)),
       pendingLogin,
-      signIn: async (email, password) => {
-        const sentTo = await requestLoginCode(email, password);
+      signIn: async (emailOrPhone, password) => {
+        const sent = await requestLoginCode(emailOrPhone, password);
         pendingPassword.current = password;
-        setPendingLogin({ email: sentTo });
+        setPendingLogin({ ...sent, identifier: emailOrPhone });
+      },
+      signUp: async (signupPass, password) => {
+        await signedIn(await signUpWithPass(signupPass, password, startHome));
       },
       verifyLoginCode: async code => {
         if (!pendingLogin) throw new Error('Log in first');
-        await signedIn(await loginWithCode(pendingLogin.email, code, startHome));
+        await signedIn(await loginWithCode(pendingLogin.identifier, code, startHome));
         endPendingLogin();
       },
       resendLoginCode: async () => {
         if (!pendingLogin) return;
-        await requestLoginCode(pendingLogin.email, pendingPassword.current);
+        // The same way as the first code: by SMS for a phone login.
+        const sent = await requestLoginCode(pendingLogin.identifier, pendingPassword.current);
+        setPendingLogin({ ...sent, identifier: pendingLogin.identifier });
       },
       cancelLogin: endPendingLogin,
       signInAsMember: async (email, password) => {
@@ -196,10 +212,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         await signedIn(next);
       },
-      signInWithApple: async () => {
+      signInWithApple: async (signup = false) => {
         const identity = await pickAppleIdentity();
         if (!identity) return;
-        await signedIn(await loginWithApple(identity.identityToken, identity.fullName, startHome));
+        await signedIn(await loginWithApple(identity.identityToken, identity.fullName, startHome, signup));
       },
       completeProfile: async details => {
         if (!seller) throw new Error('Log in first');

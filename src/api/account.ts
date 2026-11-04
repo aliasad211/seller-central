@@ -6,8 +6,13 @@ export async function sendSignupCode(email: string): Promise<void> {
   await api('/auth/send-email-verification', { method: 'POST', body: { email: email.trim().toLowerCase() }, auth: false });
 }
 
-export async function verifySignupCode(email: string, code: string): Promise<void> {
-  await api(`/auth/verify-email?token=${encodeURIComponent(code.trim())}&email=${encodeURIComponent(email.trim().toLowerCase())}`, { auth: false });
+/**
+ * The email's code. Returns the signup pass that lets the new account log
+ * straight in to Seller Central once created (see signUpWithPass).
+ */
+export async function verifySignupCode(email: string, code: string): Promise<string | null> {
+  const data = await api<{ signupPass?: string | null }>(`/auth/verify-email?token=${encodeURIComponent(code.trim())}&email=${encodeURIComponent(email.trim().toLowerCase())}`, { auth: false });
+  return data?.signupPass ?? null;
 }
 
 export function accountForm(details: AccountDetails): FormData {
@@ -30,11 +35,13 @@ export async function sendPhoneSignupCode(phone: string): Promise<void> {
   await api('/auth/send-otp', { method: 'POST', body: { phoneNumber: pakistanPhone(phone) }, auth: false });
 }
 
-export async function verifyPhoneSignupCode(phone: string, code: string): Promise<void> {
-  const result = await api<{ isValid: boolean }>('/auth/verify-otp', {
+/** The phone's code; returns its signup pass, as verifySignupCode does. */
+export async function verifyPhoneSignupCode(phone: string, code: string): Promise<string | null> {
+  const result = await api<{ isValid: boolean; signupPass?: string }>('/auth/verify-otp', {
     method: 'POST', body: { phoneNumber: pakistanPhone(phone), code: code.trim() }, auth: false,
   });
   if (result?.isValid !== true) throw new Error(t('Invalid or expired verification code'));
+  return result.signupPass ?? null;
 }
 
 export function validSignupPassword(password: string): boolean {

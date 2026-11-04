@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, loadTokens, saveTokens } from '../src/api/http';
 import { accountForm, createFazlAccount, deleteAccount, sendSignupCode, verifySignupCode, sendPhoneSignupCode, verifyPhoneSignupCode } from '../src/api/account';
-import { completeOwnerProfile, loginAsMember, loginWithCode, loginWithGoogle, logout, requestLoginCode, restoreSession } from '../src/api/session';
+import { completeOwnerProfile, loginAsMember, loginWithCode, loginWithGoogle, logout, requestLoginCode, restoreSession, signUpWithPass } from '../src/api/session';
 import { AccountDetails, accountDetailsErrors, pakistanPhone } from '../src/utils/accountProfile';
 
 jest.mock('../src/i18n', () => ({ language: 'en', isUrdu: false, t: (key: string) => key }));
@@ -23,7 +23,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   (AsyncStorage.getMany as jest.Mock).mockResolvedValue({});
   request.mockImplementation(async (url: string) => {
-    if (url === '/seller/session/verify' || url === '/seller/session/google') return sessionReply;
+    if (url === '/seller/session/verify' || url === '/seller/session/google' || url === '/seller/session/signup') return sessionReply;
     if (url === '/users/detail/u1') return completeUser;
     if (url === '/shops/userShops') return [];
     return undefined;
@@ -37,8 +37,8 @@ test('deleting closes the Seller Central account only, not the Fazl app’s', as
 });
 
 test('the password only gets a code emailed; the code logs in, in a session of its own', async () => {
-  request.mockResolvedValueOnce({ email: 'ali@example.com', expiresInSeconds: 600 });
-  await expect(requestLoginCode(' ali@example.com ', 'secret12')).resolves.toBe('ali@example.com');
+  request.mockResolvedValueOnce({ email: 'ali@example.com', sentTo: 'email', to: 'ali@example.com', expiresInSeconds: 600 });
+  await expect(requestLoginCode(' ali@example.com ', 'secret12')).resolves.toEqual({ sentTo: 'email', to: 'ali@example.com' });
   expect(request).toHaveBeenLastCalledWith('/seller/session/login', { method: 'POST', body: { email: 'ali@example.com', password: 'secret12' }, auth: false });
   expect(saveTokens).not.toHaveBeenCalled();
 
@@ -48,6 +48,23 @@ test('the password only gets a code emailed; the code logs in, in a session of i
   expect(seller.id).toBe('u1');
   // Never the Fazl app's login or session.
   expect(request.mock.calls.some(([url]) => url.startsWith('/auth/'))).toBe(false);
+});
+
+test('a phone number logs in too: sent as the phone, and the code may go by SMS', async () => {
+  request.mockResolvedValueOnce({ sentTo: 'phone', to: '+92 300 ***4567' });
+  await expect(requestLoginCode('0300 1234567', 'secret12')).resolves.toEqual({ sentTo: 'phone', to: '+92 300 ***4567' });
+  expect(request).toHaveBeenLastCalledWith('/seller/session/login', { method: 'POST', body: { phone: '+923001234567', password: 'secret12' }, auth: false });
+  // The code is checked with the phone number too: a phone login never learns the account's email.
+  await loginWithCode('0300 1234567', '123456');
+  expect(request).toHaveBeenCalledWith('/seller/session/verify', expect.objectContaining({ body: { phone: '+923001234567', code: '123456' } }));
+});
+
+test('signup opens Seller Central with its pass, without a second code', async () => {
+  const seller = await signUpWithPass('the-pass', 'secret12!');
+  expect(request).toHaveBeenCalledWith('/seller/session/signup', { method: 'POST', body: { signupPass: 'the-pass', password: 'secret12!' }, auth: false });
+  expect(saveTokens).toHaveBeenCalledWith({ accessToken: 'access', refreshToken: 'refresh', seller: true });
+  expect(seller.id).toBe('u1');
+  expect(request.mock.calls.some(([url]) => url === '/seller/session/login')).toBe(false);
 });
 
 test('logging out ends the Seller Central session, never the Fazl app’s', async () => {
@@ -97,8 +114,8 @@ test('phone signup uses real OTP endpoints and refuses unsuccessful verification
   expect(request).toHaveBeenLastCalledWith('/auth/send-otp', expect.objectContaining({ body: { phoneNumber: '+923001234567' }, auth: false }));
   request.mockResolvedValueOnce({ isValid: false });
   await expect(verifyPhoneSignupCode('03001234567', '123456')).rejects.toThrow('Invalid or expired');
-  request.mockResolvedValueOnce({ isValid: true });
-  await expect(verifyPhoneSignupCode('03001234567', '123456')).resolves.toBeUndefined();
+  request.mockResolvedValueOnce({ isValid: true, signupPass: 'phone-pass' });
+  await expect(verifyPhoneSignupCode('03001234567', '123456')).resolves.toBe('phone-pass');
 });
 
 test('existing complete accounts use fresh profile data and open their shop', async () => {

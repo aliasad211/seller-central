@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Seller, Shop } from '../types/models';
 import { isUrdu, t } from '../i18n';
 import { api, ApiError, currentTokens, loadTokens, saveTokens } from './http';
-import { AccountDetails, needsAccountDetails } from '../utils/accountProfile';
+import { AccountDetails, needsAccountDetails, pakistanPhone } from '../utils/accountProfile';
 import { accountForm } from './account';
 
 const SELLER_KEY = 'sellerCentral.seller';
@@ -182,28 +182,56 @@ async function sellerSessionStarted(data: SellerSession, onLastShop?: OnLastShop
   return ownerSignedIn(data.user, onLastShop);
 }
 
+/** Where a login code went. */
+export interface LoginCodeSent {
+  sentTo: 'email' | 'phone';
+  /** Shown to the user: the email typed, else the address or number partly hidden. */
+  to: string;
+}
+
+/** A phone number rather than an email: digits, spaces, dashes and a leading +. */
+export const looksLikePhone = (value: string) => !value.includes('@') && /^\+?[\d\s-]{10,16}$/.test(value.trim());
+
 /**
- * A password login's first step: Fazl checks the email and password, then
- * emails the account a 6-digit code to finish with (see loginWithCode).
- * Nothing is signed in yet. Returns the address the code went to.
+ * A password login's first step: Fazl checks the email (or phone number) and
+ * password, then sends the account a 6-digit code to finish with (see
+ * loginWithCode) — by SMS for a phone number once SMS is set up, else by
+ * email. Nothing is signed in yet.
  */
-export async function requestLoginCode(email: string, password: string): Promise<string> {
-  const data = await api<{ email?: string }>('/seller/session/login', {
+export async function requestLoginCode(emailOrPhone: string, password: string): Promise<LoginCodeSent> {
+  const value = emailOrPhone.trim();
+  const byPhone = looksLikePhone(value);
+  const data = await api<Partial<LoginCodeSent>>('/seller/session/login', {
     method: 'POST',
-    body: { email: email.trim(), password },
+    body: byPhone ? { phone: pakistanPhone(value), password } : { email: value, password },
     auth: false,
   });
-  return data?.email ?? email.trim();
+  return { sentTo: data?.sentTo ?? 'email', to: data?.to ?? value };
 }
 
 /**
- * The emailed code: opens Seller Central for the account — afresh, if the
- * owner had closed it — and logs in.
+ * Signup's end: the account was just created with an email or phone verified
+ * a moment ago (its signup pass), so Seller Central opens with no second code.
  */
-export async function loginWithCode(email: string, code: string, onLastShop?: OnLastShop): Promise<Seller> {
+export async function signUpWithPass(signupPass: string, password: string, onLastShop?: OnLastShop): Promise<Seller> {
+  const data = await api<SellerSession>('/seller/session/signup', {
+    method: 'POST',
+    body: { signupPass, password },
+    auth: false,
+  });
+  return sellerSessionStarted(data, onLastShop);
+}
+
+/**
+ * The code that was sent: opens Seller Central for the account — afresh, if
+ * the owner had closed it — and logs in. `emailOrPhone`: what the login was
+ * started with (a phone login is never told the account's email).
+ */
+export async function loginWithCode(emailOrPhone: string, code: string, onLastShop?: OnLastShop): Promise<Seller> {
+  const value = emailOrPhone.trim();
   const data = await api<SellerSession>('/seller/session/verify', {
     method: 'POST',
-    body: { email, code: code.trim() },
+    body: looksLikePhone(value) ? { phone: pakistanPhone(value), code: code.trim() } : { email: value, code: code.trim() },
     auth: false,
   });
   return sellerSessionStarted(data, onLastShop);
@@ -224,17 +252,20 @@ export async function loginWithGoogle(idToken: string, onLastShop?: OnLastShop):
 }
 
 /**
- * Sign in with Apple (iPhone) for an existing Fazl account only: the backend
- * refuses an Apple ID that has no Fazl account (404) instead of creating one.
+ * Sign in with Apple (iPhone). From Login, an existing Fazl account only: the
+ * backend refuses an Apple ID that has no Fazl account (404). From Signup
+ * (`signup`), the account is created if new; a new owner then completes
+ * their profile, as after Google.
  */
 export async function loginWithApple(
   identityToken: string,
   fullName: { givenName: string | null; familyName: string | null },
   onLastShop?: OnLastShop,
+  signup = false,
 ): Promise<Seller> {
   const data = await api<SellerSession>('/seller/session/apple', {
     method: 'POST',
-    body: { identityToken, fullName },
+    body: { identityToken, fullName, ...(signup ? { signup: true } : {}) },
     auth: false,
   });
   return sellerSessionStarted(data, onLastShop);

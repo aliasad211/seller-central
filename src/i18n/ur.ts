@@ -4,6 +4,15 @@
 const ur: Record<string, string> = {
   // Shared Fazl account signup and profile completion.
   'Create your Fazl account': 'اپنا فضل اکاؤنٹ بنائیں',
+  'Create your Seller Central account': 'اپنا سیلر سینٹرل اکاؤنٹ بنائیں',
+  'Log in to Seller Central and the Fazl app with the same email and password.':
+    'اسی ای میل اور پاس ورڈ سے سیلر سینٹرل اور فضل ایپ دونوں میں لاگ اِن کریں۔',
+  'New to Seller Central? Create your account': 'سیلر سینٹرل پر نئے ہیں؟ اپنا اکاؤنٹ بنائیں',
+  'Email or phone number': 'ای میل یا فون نمبر',
+  'Enter a valid email or phone number': 'درست ای میل یا فون نمبر درج کریں',
+  'you@example.com or 03001234567': 'you@example.com یا 03001234567',
+  'Check your phone': 'اپنا فون دیکھیں',
+  'Change email or phone': 'ای میل یا فون نمبر تبدیل کریں',
   'One account for Fazl App and Seller Central.': 'فضل ایپ اور سیلر سینٹرل کے لیے ایک ہی اکاؤنٹ۔',
   'New to Fazl? Create an account': 'فضل پر نئے ہیں؟ اکاؤنٹ بنائیں',
   'Create account': 'اکاؤنٹ بنائیں',

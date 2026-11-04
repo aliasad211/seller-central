@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Lock, MailCheck } from 'lucide-react-native';
+import { Lock, MailCheck, MessageSquareText } from 'lucide-react-native';
 import { AppText, CodeBoxes, DoodleButton, IconCircle, Screen } from '../../components';
 import { ChevronBack } from '../../components/Chevrons';
 import { useAuth } from '../../state/AuthContext';
@@ -11,12 +11,14 @@ import { t } from '../../i18n';
 const RESEND_AFTER = 60;
 
 /**
- * A password login's last step, on Login or right after Signup: the 6-digit
- * code Fazl emailed to the account. Seller Central asks for one on every
- * password login, and after its account was closed this opens it again.
+ * A password login's last step, on Login (or Signup, when its own login
+ * could not finish): the 6-digit code Fazl sent — by SMS for a phone login,
+ * else by email. Seller Central asks for one on every password login, and
+ * after its account was closed this opens it again.
  */
 export function LoginCodeStep() {
   const { pendingLogin, verifyLoginCode, resendLoginCode, cancelLogin } = useAuth();
+  const byPhone = pendingLogin?.sentTo === 'phone';
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -63,10 +65,10 @@ export function LoginCodeStep() {
       </View>
 
       <View style={styles.brand}>
-        <IconCircle icon={MailCheck} size={72} />
-        <AppText variant="title" align="center">{t('Check your email')}</AppText>
+        <IconCircle icon={byPhone ? MessageSquareText : MailCheck} size={72} />
+        <AppText variant="title" align="center">{byPhone ? t('Check your phone') : t('Check your email')}</AppText>
         <AppText color={colors.textMuted} align="center">
-          {t('Enter the 6-digit code we sent to {email} to open Seller Central.', { email: pendingLogin?.email ?? '' })}
+          {t('Enter the 6-digit code we sent to {email} to open Seller Central.', { email: pendingLogin?.to ?? '' })}
         </AppText>
       </View>
 
@@ -102,7 +104,7 @@ export function LoginCodeStep() {
         </Pressable>
       </View>
       <Pressable disabled={loading} onPress={cancelLogin} style={styles.linkRow} hitSlop={8} accessibilityRole="button">
-        <AppText style={styles.linkText}>{t('Change email')}</AppText>
+        <AppText style={styles.linkText}>{t('Change email or phone')}</AppText>
       </Pressable>
 
       <AppText variant="caption" color={colors.textMuted} align="center" style={styles.note}>

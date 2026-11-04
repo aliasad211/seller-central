@@ -11,6 +11,16 @@ jest.mock('lucide-react-native', () => new Proxy({}, { get: () => () => null }))
 jest.mock('../src/api/http', () => ({ api: jest.fn() }));
 jest.mock('../src/api/account', () => ({ ...jest.requireActual('../src/api/account'), createFazlAccount: jest.fn(), sendSignupCode: jest.fn(), verifySignupCode: jest.fn(), sendPhoneSignupCode: jest.fn(), verifyPhoneSignupCode: jest.fn() }));
 jest.mock('../src/state/AuthContext', () => ({ useAuth: jest.fn() }));
+// Apple's button as a plain pressable (the native package doesn't load in Jest).
+jest.mock('../src/api/apple', () => ({ isAppleSignInAvailable: true }));
+jest.mock('@invertase/react-native-apple-authentication', () => {
+  const React = require('react');
+  const { Pressable } = require('react-native');
+  const AppleButton = ({ onPress }: any) => React.createElement(Pressable, { testID: 'Continue with Apple', onPress });
+  AppleButton.Style = {};
+  AppleButton.Type = {};
+  return { AppleButton };
+});
 jest.mock('../src/components', () => {
   const React = require('react');
   const { Text, View, TextInput, Pressable } = require('react-native');
@@ -34,17 +44,20 @@ jest.mock('../src/screens/auth/AccountDetailsForm', () => {
 
 let tree: Renderer.ReactTestRenderer;
 const signIn = jest.fn();
+const signUp = jest.fn();
 const signInWithGoogle = jest.fn();
+const signInWithApple = jest.fn();
 beforeEach(async () => {
   jest.clearAllMocks();
   jest.useFakeTimers();
-  (useAuth as jest.Mock).mockReturnValue({ signIn, signInWithGoogle });
+  (useAuth as jest.Mock).mockReturnValue({ signIn, signUp, signInWithGoogle, signInWithApple });
   (sendSignupCode as jest.Mock).mockResolvedValue(undefined);
-  (verifySignupCode as jest.Mock).mockResolvedValue(undefined);
+  (verifySignupCode as jest.Mock).mockResolvedValue('email-pass');
   (sendPhoneSignupCode as jest.Mock).mockResolvedValue(undefined);
-  (verifyPhoneSignupCode as jest.Mock).mockResolvedValue(undefined);
+  (verifyPhoneSignupCode as jest.Mock).mockResolvedValue('phone-pass');
   (createFazlAccount as jest.Mock).mockResolvedValue(undefined);
   signIn.mockResolvedValue(undefined);
+  signUp.mockResolvedValue(undefined);
   await act(async () => { tree = Renderer.create(<SignupScreen navigation={{ goBack: jest.fn() } as any} route={{} as any} />); });
 });
 afterEach(async () => { await act(async () => tree.unmount()); jest.useRealTimers(); });
@@ -61,14 +74,30 @@ async function verifiedDetails() {
   await press('Continue');
 }
 
-test('signs in the shared account only after email verification and successful account creation', async () => {
+test('created after email verification, the account opens Seller Central straight away, with no second code', async () => {
   expect(tree.root.findAllByProps({ testID: 'submit-details' })).toHaveLength(0);
   await verifiedDetails();
   expect(verifySignupCode).toHaveBeenCalledWith('ali@example.com', '123456');
   expect(createFazlAccount).not.toHaveBeenCalled();
   await press('submit-details');
   expect(createFazlAccount).toHaveBeenCalledWith('ali@example.com', 'secret12!', expect.objectContaining({ roles: ['business_owner'] }));
+  expect(signUp).toHaveBeenCalledWith('email-pass', 'secret12!');
+  // No code-sending login after signup.
+  expect(signIn).not.toHaveBeenCalled();
+});
+
+test('when the signup pass no longer works, it logs in as usual (with the code)', async () => {
+  signUp.mockRejectedValueOnce(new Error('expired'));
+  await verifiedDetails(); await press('submit-details');
+  expect(createFazlAccount).toHaveBeenCalledTimes(1);
   expect(signIn).toHaveBeenCalledWith('ali@example.com', 'secret12!');
+});
+
+test('Apple on signup creates the account (iPhone)', async () => {
+  await press('Continue with Apple');
+  expect(signInWithApple).toHaveBeenCalledWith(true);
+  expect(sendSignupCode).not.toHaveBeenCalled();
+  expect(createFazlAccount).not.toHaveBeenCalled();
 });
 
 test('a rejected verification code cannot advance into account creation', async () => {
@@ -105,6 +134,7 @@ test('phone signup verifies the phone and creates only a business owner', async 
   await input('Choose a password', 'secret12!'); await input('Confirm password', 'secret12!'); await press('Continue');
   await input('Email Address', 'ali@example.com'); await press('submit-details');
   expect(createFazlAccount).toHaveBeenCalledWith('ali@example.com', 'secret12!', expect.objectContaining({ roles: ['business_owner'], phone: '+923001234567' }));
+  expect(signUp).toHaveBeenCalledWith('phone-pass', 'secret12!');
 });
 
 test('failed phone verification cannot advance to password or account creation', async () => {
@@ -132,6 +162,7 @@ test('once created, logging in waits for the code emailed to the account', async
 });
 
 test('retries login after account creation without ever creating the account twice', async () => {
+  signUp.mockRejectedValueOnce(new Error('expired'));
   signIn.mockRejectedValueOnce(new Error('Connection interrupted'));
   await verifiedDetails(); await press('submit-details');
   expect(createFazlAccount).toHaveBeenCalledTimes(1);

@@ -1,6 +1,8 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { CircleCheck, KeyRound, Languages, Lock, ShieldCheck, UserPlus, UserRound } from 'lucide-react-native';
+import { AppleButton } from '@invertase/react-native-apple-authentication';
+import { isAppleSignInAvailable } from '../../api/apple';
 import GoogleIcon from '../../assets/icons/google.png';
 import { createFazlAccount, sendSignupCode, verifySignupCode, sendPhoneSignupCode, verifyPhoneSignupCode, validSignupPassword } from '../../api/account';
 import { AppText, CodeBoxes, DoodleButton, IconCircle, OutlinedField, Screen } from '../../components';
@@ -17,12 +19,16 @@ import { LoginCodeStep } from './LoginCodeStep';
 type Stage = 'contact' | 'code' | 'password' | 'details';
 
 /**
- * A new Fazl account, laid out as the Login screen is: the email or phone, then
- * the code sent to it (in boxes, with a resend), a password, and the owner's
- * details — or Google instead of all of it.
+ * A new Seller Central account (the same account logs in to the Fazl app),
+ * laid out as the Login screen is: the email or phone, then the code sent to
+ * it (in boxes, with a resend), a password, and the owner's details — or
+ * Google, or Apple on an iPhone, instead of all of it. Created, it opens
+ * Seller Central straight away: the code just entered counts, so no second one.
  */
 export function SignupScreen({ navigation }: RootScreenProps<'Signup'>) {
-  const { pendingLogin, signIn, signInWithGoogle } = useAuth();
+  const { pendingLogin, signIn, signUp, signInWithGoogle, signInWithApple } = useAuth();
+  // From the verified code: lets the new account log straight in.
+  const [signupPass, setSignupPass] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>('contact');
   const [method, setMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
@@ -60,7 +66,7 @@ export function SignupScreen({ navigation }: RootScreenProps<'Signup'>) {
     if (!/^\d{6}$/.test(value)) { setError(t('Enter the 6-digit verification code')); return; }
     setLoading(true); setError('');
     try {
-      if (method === 'email') await verifySignupCode(email, value); else await verifyPhoneSignupCode(phone, value);
+      setSignupPass(method === 'email' ? await verifySignupCode(email, value) : await verifyPhoneSignupCode(phone, value));
       setStage('password'); setCode('');
     } catch (e) { setError(e instanceof Error ? e.message : t('Please try again')); }
     finally { setLoading(false); }
@@ -84,6 +90,11 @@ export function SignupScreen({ navigation }: RootScreenProps<'Signup'>) {
     setLoading(true); setError('');
     try {
       await createFazlAccount(email, password, { ...details, roles: ['business_owner'], ...(method === 'phone' ? { phone: pakistanPhone(phone) } : {}) });
+      // Straight into Seller Central: the code just entered counts.
+      if (signupPass) {
+        try { await signUp(signupPass, password); return; }
+        catch { /* e.g. too long since the code: log in as usual below */ }
+      }
       setCreated(true);
       await signIn(email.trim().toLowerCase(), password);
     } catch (e) { setError(e instanceof Error ? e.message : t('Please try again')); }
@@ -95,6 +106,14 @@ export function SignupScreen({ navigation }: RootScreenProps<'Signup'>) {
     try { await signInWithGoogle(); }
     catch (e) { setError(e instanceof Error ? e.message : t('Google sign-in failed')); }
     finally { setLoading(false); setUsingGoogle(false); }
+  };
+  // iPhone only: Apple has verified the email, so the account is created and opened at once.
+  const apple = async () => {
+    if (loading) return;
+    setLoading(true); setError('');
+    try { await signInWithApple(true); }
+    catch (e) { setError(e instanceof Error ? e.message : t('Apple sign-in failed')); }
+    finally { setLoading(false); }
   };
   const back = () => {
     setError('');
@@ -112,7 +131,7 @@ export function SignupScreen({ navigation }: RootScreenProps<'Signup'>) {
         ? { icon: KeyRound, title: t('Create a password'), text: t('Use at least 8 characters, a special character, and no spaces') }
         : stage === 'details'
           ? { icon: UserRound, title: t('Your details'), text: contact }
-          : { icon: UserPlus, title: t('Create your Fazl account'), text: t('Create a business owner account for Fazl App and Seller Central.') };
+          : { icon: UserPlus, title: t('Create your Seller Central account'), text: t('Log in to Seller Central and the Fazl app with the same email and password.') };
 
   // Created and logging in: Seller Central's emailed login code, as on Login.
   if (pendingLogin) return <LoginCodeStep />;
@@ -205,6 +224,17 @@ export function SignupScreen({ navigation }: RootScreenProps<'Signup'>) {
               </>
             )}
           </TouchableOpacity>
+
+          {/* Apple's own button, iPhone only (as on Login and in the Fazl app). */}
+          {isAppleSignInAvailable ? (
+            <AppleButton
+              buttonStyle={AppleButton.Style.BLACK}
+              buttonType={AppleButton.Type.CONTINUE}
+              cornerRadius={12}
+              style={[styles.apple, loading && styles.dimmed]}
+              onPress={apple}
+            />
+          ) : null}
         </>
       )}
 
@@ -260,5 +290,8 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   googleIcon: { width: 22, height: 22 },
   googleText: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
+  // Login's Apple button.
+  apple: { width: '100%', height: 56, marginTop: spacing.md },
+  dimmed: { opacity: 0.6 },
   loginRow: { alignSelf: 'center', marginTop: spacing.xl, marginBottom: spacing.lg },
 }));
